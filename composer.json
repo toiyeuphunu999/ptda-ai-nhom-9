@@ -1,0 +1,9 @@
+{
+  "name": "web212/bookstore",
+  "description": "Production bookstore MVC application for WEB212",
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    }
+  }
+}

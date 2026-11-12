@@ -1,0 +1,1 @@
+<header class="admin-header"><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="admin-nav">Menu</button><div><p class="eyebrow">Khu vực quản trị</p><h1><?= \App\Helpers\ViewHelper::escape($title ?? '') ?></h1></div><span class="demo-note">Quản lý vận hành</span></header>

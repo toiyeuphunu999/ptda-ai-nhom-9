@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Wireframe khu vực quản trị Mộc Bản</title>
+  <desc id="desc">Bố cục sidebar, thống kê và bảng dữ liệu quản trị.</desc>
+  <rect width="1200" height="760" fill="#f8f6f0"/>
+  <g stroke="#63706a" stroke-width="2" fill="none">
+    <rect x="30" y="30" width="220" height="700" fill="#24312d" stroke="#24312d"/>
+    <rect x="280" y="30" width="890" height="80" fill="#fff"/>
+    <rect x="280" y="140" width="205" height="110" fill="#fff"/>
+    <rect x="510" y="140" width="205" height="110" fill="#fff"/>
+    <rect x="740" y="140" width="205" height="110" fill="#fff"/>
+    <rect x="970" y="140" width="200" height="110" fill="#fff"/>
+    <rect x="280" y="285" width="890" height="380" fill="#fff"/>
+    <line x1="280" y1="345" x2="1170" y2="345"/>
+    <line x1="280" y1="405" x2="1170" y2="405"/>
+    <line x1="280" y1="465" x2="1170" y2="465"/>
+    <line x1="280" y1="525" x2="1170" y2="525"/>
+    <line x1="280" y1="585" x2="1170" y2="585"/>
+    <line x1="500" y1="285" x2="500" y2="665"/>
+    <line x1="760" y1="285" x2="760" y2="665"/>
+    <line x1="980" y1="285" x2="980" y2="665"/>
+  </g>
+  <g font-family="Arial, sans-serif">
+    <g fill="#fff"><text x="60" y="75" font-size="20" font-weight="700">MỘC BẢN</text><text x="60" y="120" font-size="15">Tổng quan</text><text x="60" y="160" font-size="15">Sách</text><text x="60" y="200" font-size="15">Danh mục</text><text x="60" y="240" font-size="15">Đơn hàng</text><text x="60" y="280" font-size="15">Khách hàng</text></g>
+    <g fill="#24312d"><text x="310" y="78" font-size="22" font-weight="700">Khu vực quản trị</text><text x="305" y="205" font-size="18">Số sách</text><text x="535" y="205" font-size="18">Danh mục</text><text x="765" y="205" font-size="18">Đơn hàng</text><text x="995" y="205" font-size="18">Khách hàng</text><text x="310" y="325" font-size="18" font-weight="700">Bảng dữ liệu</text><text x="310" y="380" font-size="15">Tên / mã</text><text x="530" y="380" font-size="15">Trạng thái</text><text x="790" y="380" font-size="15">Ngày</text><text x="1010" y="380" font-size="15">Thao tác</text><text x="30" y="748" font-size="14">Wireframe tham chiếu — UI thật nằm trong app/Views/admin.</text></g>
+  </g>
+</svg>

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Wireframe trang cửa hàng Mộc Bản</title>
+  <desc id="desc">Bố cục header, hero, danh mục và lưới sách.</desc>
+  <rect width="1200" height="760" fill="#f8f6f0"/>
+  <g stroke="#63706a" stroke-width="2" fill="none">
+    <rect x="40" y="30" width="1120" height="72" fill="#fff"/>
+    <rect x="70" y="52" width="150" height="28"/>
+    <rect x="270" y="52" width="330" height="28"/>
+    <rect x="640" y="52" width="240" height="28"/>
+    <rect x="920" y="52" width="210" height="28"/>
+    <rect x="40" y="130" width="1120" height="190" fill="#fff"/>
+    <rect x="80" y="170" width="520" height="90"/>
+    <rect x="700" y="160" width="300" height="120"/>
+    <rect x="40" y="350" width="1120" height="80" fill="#fff"/>
+    <rect x="80" y="375" width="190" height="30"/>
+    <rect x="300" y="375" width="190" height="30"/>
+    <rect x="520" y="375" width="190" height="30"/>
+    <rect x="740" y="375" width="190" height="30"/>
+    <rect x="40" y="460" width="260" height="240" fill="#fff"/>
+    <rect x="325" y="460" width="260" height="240" fill="#fff"/>
+    <rect x="610" y="460" width="260" height="240" fill="#fff"/>
+    <rect x="895" y="460" width="260" height="240" fill="#fff"/>
+    <rect x="70" y="485" width="200" height="140"/>
+    <rect x="355" y="485" width="200" height="140"/>
+    <rect x="640" y="485" width="200" height="140"/>
+    <rect x="925" y="485" width="200" height="140"/>
+  </g>
+  <g font-family="Arial, sans-serif" fill="#24312d">
+    <text x="70" y="70" font-size="20" font-weight="700">MỘC BẢN</text>
+    <text x="80" y="155" font-size="15">TRANG CHỦ / BỘ SƯU TẬP</text>
+    <text x="100" y="210" font-size="28" font-weight="700">Góc đọc sách</text>
+    <text x="100" y="240" font-size="16">Danh mục → Chi tiết → Giỏ hàng → Checkout</text>
+    <text x="80" y="400" font-size="17">Văn học</text><text x="300" y="400" font-size="17">Kinh tế</text><text x="520" y="400" font-size="17">Kỹ năng sống</text><text x="740" y="400" font-size="17">Công nghệ</text>
+    <text x="70" y="650" font-size="16">Bìa + tên sách + tác giả + giá</text>
+    <text x="355" y="650" font-size="16">Bìa + tên sách + tác giả + giá</text>
+    <text x="640" y="650" font-size="16">Bìa + tên sách + tác giả + giá</text>
+    <text x="925" y="650" font-size="16">Bìa + tên sách + tác giả + giá</text>
+    <text x="40" y="735" font-size="14">Wireframe tham chiếu — UI thật nằm trong app/Views và public/assets.</text>
+  </g>
+</svg>

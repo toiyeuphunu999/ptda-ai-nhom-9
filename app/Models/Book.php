@@ -1,0 +1,164 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use App\Core\Database;
+
+final class Book
+{
+    public function __construct(private Database $database)
+    {
+    }
+
+    public function findBySlug(string $slug): ?array
+    {
+        $statement = $this->database->connection()->prepare(
+            'SELECT books.*, categories.name AS category_name, categories.slug AS category_slug FROM books '
+            . 'INNER JOIN categories ON categories.id = books.category_id '
+            . 'WHERE books.slug = :slug AND books.status = :status LIMIT 1'
+        );
+        $statement->execute(['slug' => $slug, 'status' => 'published']);
+        $book = $statement->fetch();
+        return $book ?: null;
+    }
+
+    public function published(): array
+    {
+        $statement = $this->database->connection()->prepare(
+            'SELECT books.*, categories.name AS category_name FROM books '
+            . 'INNER JOIN categories ON categories.id = books.category_id '
+            . 'WHERE books.status = :status ORDER BY books.created_at DESC'
+        );
+        $statement->execute(['status' => 'published']);
+        return $statement->fetchAll();
+    }
+
+    public function filterPublished(array $filters): array
+    {
+        $conditions = ['books.status = :status'];
+        $parameters = ['status' => 'published'];
+
+        if (($filters['category'] ?? '') !== '') {
+            $conditions[] = 'categories.slug = :category';
+            $parameters['category'] = $filters['category'];
+        }
+        if (($filters['author'] ?? '') !== '') {
+            $conditions[] = 'books.author = :author';
+            $parameters['author'] = $filters['author'];
+        }
+        if (($filters['min_price'] ?? null) !== null) {
+            $conditions[] = 'books.price >= :min_price';
+            $parameters['min_price'] = $filters['min_price'];
+        }
+        if (($filters['max_price'] ?? null) !== null) {
+            $conditions[] = 'books.price <= :max_price';
+            $parameters['max_price'] = $filters['max_price'];
+        }
+
+        $orderBy = match ($filters['sort'] ?? 'newest') {
+            'price_asc' => 'books.price ASC, books.title ASC',
+            'price_desc' => 'books.price DESC, books.title ASC',
+            default => 'books.created_at DESC, books.id DESC',
+        };
+        $sql = 'SELECT books.*, categories.name AS category_name FROM books '
+            . 'INNER JOIN categories ON categories.id = books.category_id '
+            . 'WHERE ' . implode(' AND ', $conditions) . ' ORDER BY ' . $orderBy;
+        $statement = $this->database->connection()->prepare($sql);
+        $statement->execute($parameters);
+        return $statement->fetchAll();
+    }
+
+    public function publishedAuthors(): array
+    {
+        return $this->database->connection()->query(
+            "SELECT DISTINCT author FROM books WHERE status = 'published' ORDER BY author"
+        )->fetchAll(\PDO::FETCH_COLUMN);
+    }
+
+    public function byCategory(string $categorySlug): array
+    {
+        $statement = $this->database->connection()->prepare(
+            'SELECT books.*, categories.name AS category_name FROM books '
+            . 'INNER JOIN categories ON categories.id = books.category_id '
+            . 'WHERE categories.slug = :slug AND books.status = :status ORDER BY books.title'
+        );
+        $statement->execute(['slug' => $categorySlug, 'status' => 'published']);
+        return $statement->fetchAll();
+    }
+
+    public function relatedPublished(int $categoryId, int $bookId, int $limit = 4): array
+    {
+        $limit = max(1, min(8, $limit));
+        $statement = $this->database->connection()->prepare(
+            'SELECT books.*, categories.name AS category_name FROM books '
+            . 'INNER JOIN categories ON categories.id = books.category_id '
+            . 'WHERE books.category_id = :category_id AND books.id <> :book_id AND books.status = :status '
+            . 'ORDER BY books.created_at DESC, books.id DESC LIMIT ' . $limit
+        );
+        $statement->execute(['category_id'=>$categoryId,'book_id'=>$bookId,'status'=>'published']);
+        return $statement->fetchAll();
+    }
+
+    public function search(string $query): array
+    {
+        $statement = $this->database->connection()->prepare(
+            'SELECT books.*, categories.name AS category_name FROM books '
+            . 'INNER JOIN categories ON categories.id = books.category_id '
+            . 'WHERE books.status = :status AND (books.title LIKE :title_query OR books.author LIKE :author_query) '
+            . 'ORDER BY books.title'
+        );
+        $likeQuery = '%' . $query . '%';
+        $statement->execute(['status' => 'published', 'title_query' => $likeQuery, 'author_query' => $likeQuery]);
+        return $statement->fetchAll();
+    }
+
+    public function allForAdmin(): array
+    {
+        return $this->database->connection()->query(
+            'SELECT books.*, categories.name AS category_name FROM books '
+            . 'INNER JOIN categories ON categories.id = books.category_id ORDER BY books.id DESC'
+        )->fetchAll();
+    }
+
+    public function countAll(): int
+    {
+        return (int)$this->database->connection()->query('SELECT COUNT(*) FROM books')->fetchColumn();
+    }
+
+    public function findById(int $id): ?array
+    {
+        $statement = $this->database->connection()->prepare('SELECT * FROM books WHERE id = :id LIMIT 1');
+        $statement->execute(['id' => $id]);
+        $book = $statement->fetch();
+        return $book ?: null;
+    }
+
+    public function create(array $data): int
+    {
+        $statement = $this->database->connection()->prepare(
+            'INSERT INTO books (category_id, title, slug, author, publisher, price, original_price, description, stock_quantity, status) '
+            . 'VALUES (:category_id, :title, :slug, :author, :publisher, :price, :original_price, :description, :stock_quantity, :status)'
+        );
+        $statement->execute($data);
+        return (int)$this->database->connection()->lastInsertId();
+    }
+
+    public function update(int $id, array $data): void
+    {
+        $data['id'] = $id;
+        $statement = $this->database->connection()->prepare(
+            'UPDATE books SET category_id = :category_id, title = :title, slug = :slug, author = :author, '
+            . 'publisher = :publisher, price = :price, original_price = :original_price, description = :description, '
+            . 'stock_quantity = :stock_quantity, status = :status WHERE id = :id'
+        );
+        $statement->execute($data);
+    }
+
+    public function delete(int $id): void
+    {
+        $statement = $this->database->connection()->prepare('DELETE FROM books WHERE id = :id');
+        $statement->execute(['id' => $id]);
+    }
+}
