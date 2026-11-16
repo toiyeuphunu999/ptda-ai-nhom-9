@@ -15,17 +15,18 @@ window.togglePasswordVisibility = (event, button) => {
   return false;
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.menu-toggle').forEach((button) => {
-    const target = document.getElementById(button.getAttribute('aria-controls'));
-    if (!target) return;
-    button.addEventListener('click', () => {
-      const expanded = button.getAttribute('aria-expanded') === 'true';
-      button.setAttribute('aria-expanded', String(!expanded));
-      target.classList.toggle('is-open', !expanded);
-    });
-  });
+window.toggleNavigationMenu = (event, button) => {
+  event.preventDefault();
+  event.stopPropagation();
+  const target = document.getElementById(button.getAttribute('aria-controls'));
+  if (!target) return false;
+  const expanded = button.getAttribute('aria-expanded') === 'true';
+  button.setAttribute('aria-expanded', String(!expanded));
+  target.classList.toggle('is-open', !expanded);
+  return false;
+};
 
+document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', (event) => {
     const button = event.target.closest('[data-toggle-password]');
     if (!button) return;
@@ -41,5 +42,56 @@ document.addEventListener('DOMContentLoaded', () => {
     button.setAttribute('aria-pressed', String(shouldShow));
     const icon = button.querySelector('.material-symbols-outlined');
     if (icon) icon.textContent = shouldShow ? 'visibility_off' : 'visibility';
+  });
+
+  const lazyLists = document.querySelectorAll('.book-grid, .review-list, .report-history, .admin-table tbody, .order-products');
+  const lazyBatchSize = 8;
+  const lazyState = [];
+
+  lazyLists.forEach((list) => {
+    const items = Array.from(list.children);
+    if (items.length <= lazyBatchSize) return;
+
+    const state = { list, items, shown: 0 };
+    items.forEach((item) => {
+      item.hidden = true;
+      item.classList.add('lazy-item');
+    });
+    lazyState.push(state);
+
+    const revealNext = () => {
+      const next = state.items.slice(state.shown, state.shown + lazyBatchSize);
+      next.forEach((item) => {
+        item.hidden = false;
+        item.classList.add('is-visible');
+      });
+      state.shown += next.length;
+    };
+
+    state.revealNext = revealNext;
+    revealNext();
+  });
+
+  const revealListsNearViewport = () => {
+    lazyState.forEach((state) => {
+      if (state.shown >= state.items.length) return;
+      const distanceToViewport = state.list.getBoundingClientRect().bottom - window.innerHeight;
+      if (distanceToViewport < 420) state.revealNext();
+    });
+  };
+
+  window.addEventListener('scroll', revealListsNearViewport, { passive: true });
+  window.addEventListener('resize', revealListsNearViewport);
+  revealListsNearViewport();
+
+  document.querySelectorAll('.admin-table select[name="status"]').forEach((select) => {
+    if (select.value !== 'completed') return;
+    select.disabled = true;
+    const submit = select.form?.querySelector('button[type="submit"]');
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = 'Đã hoàn tất';
+      submit.setAttribute('aria-label', 'Đơn hàng đã hoàn tất, không thể thay đổi');
+    }
   });
 });

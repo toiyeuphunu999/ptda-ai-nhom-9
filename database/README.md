@@ -10,7 +10,7 @@
 
 ## Mô hình hiện tại
 
-Các bảng nghiệp vụ gồm tài khoản, hạng khách hàng, danh mục, sách, đơn hàng, chi tiết đơn, thanh toán, lịch sử trạng thái đơn, voucher và đánh giá. Các view `v_daily_sales_report`, `v_book_sales_report`, `v_customer_sales_report`, `v_order_payment_report` phục vụ báo cáo và phân tích.
+Các bảng nghiệp vụ gồm tài khoản, hạng khách hàng, danh mục, sách, đơn hàng, chi tiết đơn, thanh toán, lịch sử trạng thái đơn, voucher và đánh giá. Báo cáo và phân tích dùng truy vấn trực tiếp trong `app/Models/Order.php`, không tạo view trong database.
 
 ## Quy tắc an toàn
 

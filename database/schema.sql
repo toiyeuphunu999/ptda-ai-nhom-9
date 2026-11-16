@@ -175,6 +175,8 @@ ALTER TABLE users
 CREATE INDEX idx_payments_status ON payments(status);
 CREATE INDEX idx_order_status_history_order ON order_status_history(order_id, created_at);
 
+/* Báo cáo dùng truy vấn trực tiếp trong app/Models/Order.php. */
+/*
 CREATE OR REPLACE VIEW v_daily_sales_report AS
 SELECT
     DATE(created_at) AS sale_date,
@@ -230,3 +232,4 @@ SELECT
     o.created_at
 FROM orders o
 LEFT JOIN payments p ON p.order_id = o.id;
+*/

@@ -8,6 +8,14 @@ final class ViewHelper
 {
     public static function escape(string $value): string
     {
+        if (preg_match('/^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?$/', $value)) {
+            try {
+                $date = new \DateTimeImmutable($value);
+                $value = strlen($value) > 10 ? $date->format('d/m/Y H:i') : $date->format('d/m/Y');
+            } catch (\Throwable) {
+                // Giữ nguyên nếu dữ liệu ngày không hợp lệ.
+            }
+        }
         return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     }
 

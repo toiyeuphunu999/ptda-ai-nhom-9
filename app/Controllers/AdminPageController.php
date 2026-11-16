@@ -92,15 +92,14 @@ final class AdminPageController extends Controller
     private function bookData(): array
     {
         $title = trim((string)($_POST['title'] ?? ''));
-        $slug = trim((string)($_POST['slug'] ?? ''));
         $author = trim((string)($_POST['author'] ?? ''));
         $price = (int)($_POST['price'] ?? 0);
         $original = trim((string)($_POST['original_price'] ?? ''));
         $categoryId = (int)($_POST['category_id'] ?? 0);
-        if ($title === '' || $slug === '' || $author === '' || $categoryId < 1 || $price < 0 || ($original !== '' && (int)$original < $price)) {
-            throw new RuntimeException('Vui lòng kiểm tra tên, slug, tác giả, danh mục và giá sách.');
+        if ($title === '' || $author === '' || $categoryId < 1 || $price < 0 || ($original !== '' && (int)$original < $price)) {
+            throw new RuntimeException('Vui lòng kiểm tra tên sách, tác giả, danh mục và giá sách.');
         }
-        return ['category_id'=>$categoryId,'title'=>$title,'slug'=>$slug,'author'=>$author,'publisher'=>trim((string)($_POST['publisher'] ?? '')) ?: null,'price'=>$price,'original_price'=>$original === '' ? null : (int)$original,'description'=>trim((string)($_POST['description'] ?? '')) ?: null,'stock_quantity'=>max(0,(int)($_POST['stock_quantity'] ?? 0)),'status'=>in_array($_POST['status'] ?? 'draft', ['draft','published','hidden'], true) ? $_POST['status'] : 'draft'];
+        return ['category_id'=>$categoryId,'title'=>$title,'author'=>$author,'publisher'=>trim((string)($_POST['publisher'] ?? '')) ?: null,'price'=>$price,'original_price'=>$original === '' ? null : (int)$original,'description'=>trim((string)($_POST['description'] ?? '')) ?: null,'stock_quantity'=>max(0,(int)($_POST['stock_quantity'] ?? 0)),'status'=>in_array($_POST['status'] ?? 'draft', ['draft','published','hidden'], true) ? $_POST['status'] : 'draft'];
     }
     public function bookStore(): void { $this->authorize(); try { Csrf::verify($_POST['_csrf'] ?? null); (new Book($this->database()))->create($this->bookData()); Session::flash('success', 'Đã thêm sách thành công.'); header('Location: /admin/books'); } catch (Throwable $e) { http_response_code(422); $this->view->render('admin/book_form', ['title'=>'Thêm sách','error'=>$e->getMessage(),'categories'=>(new Category($this->database()))->all()], 'admin'); } }
     public function bookUpdate(string $id): void { $this->authorize(); try { Csrf::verify($_POST['_csrf'] ?? null); (new Book($this->database()))->update((int)$id, $this->bookData()); Session::flash('success', 'Đã cập nhật sách thành công.'); header('Location: /admin/books'); } catch (Throwable $e) { http_response_code(422); $this->view->render('admin/book_form', ['title'=>'Chỉnh sửa sách','error'=>$e->getMessage(),'book'=>(new Book($this->database()))->findById((int)$id),'categories'=>(new Category($this->database()))->all()], 'admin'); } }
@@ -109,11 +108,10 @@ final class AdminPageController extends Controller
     private function categoryData(): array
     {
         $name = trim((string)($_POST['name'] ?? ''));
-        $slug = trim((string)($_POST['slug'] ?? ''));
-        if ($name === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
-            throw new RuntimeException('Tên danh mục không được trống và slug chỉ dùng chữ thường, số, dấu gạch ngang.');
+        if ($name === '') {
+            throw new RuntimeException('Tên danh mục không được để trống.');
         }
-        return [$name, $slug, trim((string)($_POST['description'] ?? '')) ?: null];
+        return [$name, '', trim((string)($_POST['description'] ?? '')) ?: null];
     }
 
     public function categoryStore(): void

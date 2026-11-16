@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Core\Database;
+use App\Helpers\SlugHelper;
 
 final class Category
 {
@@ -32,6 +33,7 @@ final class Category
 
     public function create(string $name, string $slug, ?string $description): int
     {
+        $slug = $this->uniqueSlug($name);
         $statement = $this->database->connection()->prepare(
             'INSERT INTO categories (name, slug, description) VALUES (:name, :slug, :description)'
         );
@@ -41,10 +43,27 @@ final class Category
 
     public function update(int $id, string $name, string $slug, ?string $description): void
     {
+        $slug = $this->uniqueSlug($name, $id);
         $statement = $this->database->connection()->prepare(
             'UPDATE categories SET name = :name, slug = :slug, description = :description WHERE id = :id'
         );
         $statement->execute(compact('id', 'name', 'slug', 'description'));
+    }
+
+    private function uniqueSlug(string $name, ?int $ignoreId = null): string
+    {
+        $base = SlugHelper::fromText($name);
+        $slug = $base;
+        $suffix = 2;
+        do {
+            $sql = 'SELECT id FROM categories WHERE slug = :slug' . ($ignoreId !== null ? ' AND id <> :id' : '') . ' LIMIT 1';
+            $statement = $this->database->connection()->prepare($sql);
+            $params = ['slug' => $slug];
+            if ($ignoreId !== null) $params['id'] = $ignoreId;
+            $statement->execute($params);
+            if (!$statement->fetch()) return $slug;
+            $slug = $base . '-' . $suffix++;
+        } while (true);
     }
 
     public function delete(int $id): void
