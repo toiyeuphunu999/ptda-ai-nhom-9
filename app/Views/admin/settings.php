@@ -14,7 +14,6 @@ $configured = (bool)($payosConfigured ?? false);
     <div><p class="eyebrow">Vận hành</p><h2>Cài đặt hệ thống</h2><p class="muted">Quản lý thông tin cửa hàng và kết nối thanh toán.</p></div>
     <a class="button" href="/admin">Về tổng quan</a>
 </div>
-<?php if (!empty($_GET['saved'])): ?><div class="notice">Đã lưu cài đặt hệ thống.</div><?php endif; ?>
 <?php if (!empty($error)): ?><div class="notice"><?= ViewHelper::escape($error) ?></div><?php endif; ?>
 <form class="settings-form" method="post" action="/admin/settings">
     <?= Csrf::field() ?>

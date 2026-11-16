@@ -86,7 +86,8 @@ final class CartPageController extends Controller
                 }
             }
             Session::put('cart', []);
-            header('Location: /orders?created=' . urlencode($code));
+            Session::flash('success', 'Đặt hàng thành công. Mã đơn: ' . $code);
+            header('Location: /orders');
         } catch (Throwable $exception) {
             http_response_code(422);
             $this->view->render('shop/checkout', ['title'=>'Thanh toán','error'=>$exception->getMessage(),'items'=>$this->cartItems(), 'paymentMethod'=>$_POST['payment_method'] ?? 'cod']);
@@ -98,7 +99,8 @@ final class CartPageController extends Controller
         Session::start();
         $status = strtoupper((string)($_GET['status'] ?? 'PENDING'));
         $message = $status === 'PAID' ? 'Thanh toán PayOS thành công. Đơn hàng đang được xác nhận.' : 'Đã trở về từ PayOS. Hệ thống đang chờ xác nhận giao dịch.';
-        header('Location: /orders?payment=' . urlencode($message));
+        Session::flash('success', $message);
+        header('Location: /orders');
     }
 
     public function payosCancel(): void
@@ -113,7 +115,8 @@ final class CartPageController extends Controller
                 // Không tin dữ liệu redirect để tự ý đổi trạng thái đơn đã thanh toán.
             }
         }
-        header('Location: /orders?payment=' . urlencode('Bạn đã hủy thanh toán PayOS. Đơn hàng đã được hủy và tồn kho đã được hoàn lại.'));
+        Session::flash('failure', 'Bạn đã hủy thanh toán PayOS. Đơn hàng đã được hủy và tồn kho đã được hoàn lại.');
+        header('Location: /orders');
     }
 
     public function payosWebhook(): void

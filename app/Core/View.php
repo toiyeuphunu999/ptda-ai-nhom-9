@@ -21,6 +21,9 @@ final class View
         ob_start();
         require $contentView;
         $content = (string) ob_get_clean();
+        ob_start();
+        require dirname(__DIR__) . '/Views/partials/flash.php';
+        $content = (string)ob_get_clean() . $content;
         require $layoutFile;
     }
 }

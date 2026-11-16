@@ -73,7 +73,7 @@ final class AdminPageController extends Controller
                 'PAYOS_API_KEY' => ['value'=>trim((string)($_POST['payos_api_key'] ?? '')), 'secret'=>true],
                 'PAYOS_CHECKSUM_KEY' => ['value'=>trim((string)($_POST['payos_checksum_key'] ?? '')), 'secret'=>true],
             ], (int)$user['id']);
-            header('Location: /admin/settings?saved=1');
+            Session::flash('success', 'Đã lưu cài đặt hệ thống.'); header('Location: /admin/settings');
         } catch (Throwable $exception) {
             http_response_code(422);
             $settings = new SystemSetting($this->database());
@@ -102,9 +102,9 @@ final class AdminPageController extends Controller
         }
         return ['category_id'=>$categoryId,'title'=>$title,'slug'=>$slug,'author'=>$author,'publisher'=>trim((string)($_POST['publisher'] ?? '')) ?: null,'price'=>$price,'original_price'=>$original === '' ? null : (int)$original,'description'=>trim((string)($_POST['description'] ?? '')) ?: null,'stock_quantity'=>max(0,(int)($_POST['stock_quantity'] ?? 0)),'status'=>in_array($_POST['status'] ?? 'draft', ['draft','published','hidden'], true) ? $_POST['status'] : 'draft'];
     }
-    public function bookStore(): void { $this->authorize(); try { Csrf::verify($_POST['_csrf'] ?? null); (new Book($this->database()))->create($this->bookData()); header('Location: /admin/books'); } catch (Throwable $e) { http_response_code(422); $this->view->render('admin/book_form', ['title'=>'Thêm sách','error'=>$e->getMessage(),'categories'=>(new Category($this->database()))->all()], 'admin'); } }
-    public function bookUpdate(string $id): void { $this->authorize(); try { Csrf::verify($_POST['_csrf'] ?? null); (new Book($this->database()))->update((int)$id, $this->bookData()); header('Location: /admin/books'); } catch (Throwable $e) { http_response_code(422); $this->view->render('admin/book_form', ['title'=>'Chỉnh sửa sách','error'=>$e->getMessage(),'book'=>(new Book($this->database()))->findById((int)$id),'categories'=>(new Category($this->database()))->all()], 'admin'); } }
-    public function bookDelete(string $id): void { $this->authorize(); Csrf::verify($_POST['_csrf'] ?? null); (new Book($this->database()))->delete((int)$id); header('Location: /admin/books'); }
+    public function bookStore(): void { $this->authorize(); try { Csrf::verify($_POST['_csrf'] ?? null); (new Book($this->database()))->create($this->bookData()); Session::flash('success', 'Đã thêm sách thành công.'); header('Location: /admin/books'); } catch (Throwable $e) { http_response_code(422); $this->view->render('admin/book_form', ['title'=>'Thêm sách','error'=>$e->getMessage(),'categories'=>(new Category($this->database()))->all()], 'admin'); } }
+    public function bookUpdate(string $id): void { $this->authorize(); try { Csrf::verify($_POST['_csrf'] ?? null); (new Book($this->database()))->update((int)$id, $this->bookData()); Session::flash('success', 'Đã cập nhật sách thành công.'); header('Location: /admin/books'); } catch (Throwable $e) { http_response_code(422); $this->view->render('admin/book_form', ['title'=>'Chỉnh sửa sách','error'=>$e->getMessage(),'book'=>(new Book($this->database()))->findById((int)$id),'categories'=>(new Category($this->database()))->all()], 'admin'); } }
+    public function bookDelete(string $id): void { $this->authorize(); Csrf::verify($_POST['_csrf'] ?? null); (new Book($this->database()))->delete((int)$id); Session::flash('success', 'Đã xóa sách thành công.'); header('Location: /admin/books'); }
 
     private function categoryData(): array
     {
@@ -123,7 +123,7 @@ final class AdminPageController extends Controller
             Csrf::verify($_POST['_csrf'] ?? null);
             [$name, $slug, $description] = $this->categoryData();
             (new Category($this->database()))->create($name, $slug, $description);
-            header('Location: /admin/categories');
+            Session::flash('success', 'Đã thêm danh mục thành công.'); header('Location: /admin/categories');
         } catch (Throwable $exception) {
             http_response_code(422);
             $this->view->render('admin/categories', ['title'=>'Danh mục','error'=>$exception->getMessage(),'categories'=>(new Category($this->database()))->all()], 'admin');
@@ -137,7 +137,7 @@ final class AdminPageController extends Controller
             Csrf::verify($_POST['_csrf'] ?? null);
             [$name, $slug, $description] = $this->categoryData();
             (new Category($this->database()))->update((int)$id, $name, $slug, $description);
-            header('Location: /admin/categories');
+            Session::flash('success', 'Đã cập nhật danh mục thành công.'); header('Location: /admin/categories');
         } catch (Throwable $exception) {
             http_response_code(422);
             $this->view->render('admin/categories', ['title'=>'Danh mục','error'=>$exception->getMessage(),'categories'=>(new Category($this->database()))->all()], 'admin');
@@ -149,7 +149,7 @@ final class AdminPageController extends Controller
         $this->authorize();
         Csrf::verify($_POST['_csrf'] ?? null);
         (new Category($this->database()))->delete((int)$id);
-        header('Location: /admin/categories');
+        Session::flash('success', 'Đã xóa danh mục thành công.'); header('Location: /admin/categories');
     }
 
     public function orderStatus(string $id): void
@@ -163,7 +163,7 @@ final class AdminPageController extends Controller
                 (string)($_POST['status'] ?? ''),
                 is_array($user) ? (int)$user['id'] : null
             );
-            header('Location: /admin/orders');
+            Session::flash('success', 'Đã cập nhật trạng thái đơn hàng.'); header('Location: /admin/orders');
         } catch (Throwable $exception) {
             http_response_code(422);
             $this->view->render('admin/orders', ['title'=>'Đơn hàng','error'=>$exception->getMessage(),'orders'=>(new Order($this->database()))->allForAdmin()], 'admin');
@@ -176,7 +176,7 @@ final class AdminPageController extends Controller
         try {
             Csrf::verify($_POST['_csrf'] ?? null);
             (new Voucher($this->database()))->create((string)($_POST['code'] ?? ''), (string)($_POST['type'] ?? ''), (int)($_POST['value'] ?? 0), (int)($_POST['min_order_amount'] ?? 0), trim((string)($_POST['starts_at'] ?? '')) ?: null, trim((string)($_POST['expires_at'] ?? '')) ?: null, ($_POST['usage_limit'] ?? '') === '' ? null : (int)$_POST['usage_limit']);
-            header('Location: /admin/vouchers');
+            Session::flash('success', 'Đã tạo mã giảm giá thành công.'); header('Location: /admin/vouchers');
         } catch (Throwable $exception) {
             http_response_code(422);
             $this->view->render('admin/vouchers', ['title'=>'Mã giảm giá','error'=>$exception->getMessage(),'vouchers'=>(new Voucher($this->database()))->allForAdmin()], 'admin');
@@ -188,6 +188,6 @@ final class AdminPageController extends Controller
         $this->authorize();
         Csrf::verify($_POST['_csrf'] ?? null);
         (new Voucher($this->database()))->delete((int)$id);
-        header('Location: /admin/vouchers');
+        Session::flash('success', 'Đã xóa mã giảm giá thành công.'); header('Location: /admin/vouchers');
     }
 }
