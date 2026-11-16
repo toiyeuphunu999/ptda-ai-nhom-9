@@ -55,7 +55,7 @@ $paymentStatuses = [
     <section class="admin-panel">
         <div class="section-heading"><div><p class="eyebrow">Theo dõi</p><h3>Thay đổi trạng thái gần đây</h3></div></div>
         <?php if (empty($reports['history'])): ?><p class="muted">Chưa có lịch sử xử lý đơn hàng.</p><?php else: ?>
-            <div class="report-history"><?php foreach ($reports['history'] as $row): ?><div class="report-history-row"><span class="report-history-dot"></span><div><strong><?= ViewHelper::escape($row['order_code']) ?></strong><p><?= ViewHelper::escape(ViewHelper::orderStatus((string)$row['from_status'])) ?> → <?= ViewHelper::escape(ViewHelper::orderStatus((string)$row['to_status'])) ?></p><small><?= ViewHelper::escape($row['changed_by_name'] ?: 'Hệ thống') ?> · <?= ViewHelper::escape($row['created_at']) ?></small></div></div><?php endforeach; ?></div>
+            <div class="report-history"><?php foreach ($reports['history'] as $row): ?><div class="report-history-row"><span class="report-history-dot"></span><div><strong><?= ViewHelper::escape($row['order_code']) ?></strong><p><?= ViewHelper::escape(ViewHelper::orderStatus((string)$row['from_status'])) ?> <span class="material-symbols-outlined status-arrow" aria-hidden="true">arrow_forward</span> <?= ViewHelper::escape(ViewHelper::orderStatus((string)$row['to_status'])) ?></p><small><?= ViewHelper::escape($row['changed_by_name'] ?: 'Hệ thống') ?> · <?= ViewHelper::escape($row['created_at']) ?></small></div></div><?php endforeach; ?></div>
         <?php endif; ?>
     </section>
 </div>

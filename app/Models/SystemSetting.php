@@ -9,6 +9,8 @@ use RuntimeException;
 
 final class SystemSetting
 {
+    private const PAYOS_API_URL = 'https://api-merchant.payos.vn';
+
     public function __construct(private Database $database) {}
 
     public function allForAdmin(): array
@@ -30,9 +32,15 @@ final class SystemSetting
             'client_id' => $get('PAYOS_CLIENT_ID'),
             'api_key' => $get('PAYOS_API_KEY'),
             'checksum_key' => $get('PAYOS_CHECKSUM_KEY'),
-            'api_url' => $get('PAYOS_API_URL') ?: 'https://api-merchant.payos.vn',
-            'app_url' => $get('APP_URL') ?: (string)(getenv('APP_URL') ?: 'http://localhost'),
+            'api_url' => self::PAYOS_API_URL,
+            'app_url' => $this->currentHttpHost(),
         ];
+    }
+
+    private function currentHttpHost(): string
+    {
+        $host = preg_replace('/[^a-zA-Z0-9.:\-\[\]]/', '', (string)($_SERVER['HTTP_HOST'] ?? ''));
+        return 'http://' . ($host !== '' ? $host : 'localhost');
     }
 
     public function get(string $key): ?string

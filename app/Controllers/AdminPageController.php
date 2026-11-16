@@ -26,7 +26,7 @@ final class AdminPageController extends Controller
         $user = Session::get('user');
         if (!is_array($user) || ($user['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            $this->view->render('errors/404', ['title'=>'Không có quyền truy cập']);
+            $this->view->render('errors/error', ['title'=>'Không có quyền truy cập','errorCode'=>'403','errorTitle'=>'Bạn không có quyền truy cập','errorMessage'=>'Tài khoản hiện tại không được phép mở khu vực quản trị.','errorLabel'=>'Hãy đăng nhập bằng tài khoản quản trị hoặc quay lại cửa hàng.','primaryUrl'=>'/','primaryLabel'=>'Về cửa hàng']);
             exit;
         }
     }
@@ -56,7 +56,7 @@ final class AdminPageController extends Controller
         $this->authorize();
         $settings = new SystemSetting($this->database());
         $config = $settings->payOSConfig();
-        $this->view->render('admin/settings', ['title'=>'Cài đặt hệ thống', 'settings'=>$settings->allForAdmin(), 'payosConfigured'=>$this->payOSConfigured($config)], 'admin');
+        $this->view->render('admin/settings', ['title'=>'Cài đặt hệ thống', 'settings'=>$settings->allForAdmin(), 'payosConfig'=>$config, 'payosConfigured'=>$this->payOSConfigured($config)], 'admin');
     }
 
     public function settingsSave(): void
@@ -66,21 +66,19 @@ final class AdminPageController extends Controller
             Csrf::verify($_POST['_csrf'] ?? null);
             $user = Session::get('user');
             (new SystemSetting($this->database()))->saveMany([
-                'APP_URL' => ['value'=>trim((string)($_POST['app_url'] ?? '')), 'secret'=>false],
                 'SHOP_PHONE' => ['value'=>trim((string)($_POST['shop_phone'] ?? '')), 'secret'=>false],
                 'SHOP_EMAIL' => ['value'=>trim((string)($_POST['shop_email'] ?? '')), 'secret'=>false],
                 'SHIPPING_FEE' => ['value'=>(string)max(0, (int)($_POST['shipping_fee'] ?? 0)), 'secret'=>false],
                 'PAYOS_CLIENT_ID' => ['value'=>trim((string)($_POST['payos_client_id'] ?? '')), 'secret'=>true],
                 'PAYOS_API_KEY' => ['value'=>trim((string)($_POST['payos_api_key'] ?? '')), 'secret'=>true],
                 'PAYOS_CHECKSUM_KEY' => ['value'=>trim((string)($_POST['payos_checksum_key'] ?? '')), 'secret'=>true],
-                'PAYOS_API_URL' => ['value'=>trim((string)($_POST['payos_api_url'] ?? 'https://api-merchant.payos.vn')), 'secret'=>false],
             ], (int)$user['id']);
             header('Location: /admin/settings?saved=1');
         } catch (Throwable $exception) {
             http_response_code(422);
             $settings = new SystemSetting($this->database());
             $config = $settings->payOSConfig();
-            $this->view->render('admin/settings', ['title'=>'Cài đặt hệ thống','error'=>$exception->getMessage(),'settings'=>$settings->allForAdmin(), 'payosConfigured'=>$this->payOSConfigured($config)], 'admin');
+            $this->view->render('admin/settings', ['title'=>'Cài đặt hệ thống','error'=>$exception->getMessage(),'settings'=>$settings->allForAdmin(), 'payosConfig'=>$config, 'payosConfigured'=>$this->payOSConfigured($config)], 'admin');
         }
     }
 

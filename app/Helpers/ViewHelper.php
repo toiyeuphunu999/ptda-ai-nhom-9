@@ -26,4 +26,21 @@ final class ViewHelper
             'cancelled' => 'Đã hủy',
         ][$status] ?? $status;
     }
+
+    public static function bookStatus(string $status): string
+    {
+        return [
+            'draft' => 'Bản nháp',
+            'published' => 'Đang bán',
+            'hidden' => 'Đã ẩn',
+        ][$status] ?? $status;
+    }
+
+    public static function userRole(string $role): string
+    {
+        return [
+            'customer' => 'Khách hàng',
+            'admin' => 'Quản trị viên',
+        ][$role] ?? $role;
+    }
 }

@@ -43,7 +43,7 @@ final class BookController extends Controller
     }
     public function detail(string $slug): void {
         $book = $this->bookModel()->findBySlug($slug);
-        if (!$book) { http_response_code(404); $this->view->render('errors/404', ['title'=>'Không tìm thấy sách']); return; }
+        if (!$book) { http_response_code(404); $this->view->render('errors/error', ['title'=>'Không tìm thấy sách','errorCode'=>'404','errorTitle'=>'Không tìm thấy sách','errorMessage'=>'Tựa sách này không tồn tại hoặc đã được gỡ khỏi cửa hàng.','errorLabel'=>'Bạn có thể quay lại danh sách để tiếp tục tìm một cuốn sách khác.','primaryUrl'=>'/books','primaryLabel'=>'Xem danh sách sách']); return; }
         Session::start();
         $database = new Database(require dirname(__DIR__, 2) . '/config/database.php');
         $reviewModel = new Review($database);
