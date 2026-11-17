@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(120) NOT NULL,
     email VARCHAR(190) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    google_id VARCHAR(100) NULL UNIQUE,
     role ENUM('customer', 'admin') NOT NULL DEFAULT 'customer',
     customer_tier_id INT UNSIGNED NOT NULL,
     referral_code VARCHAR(20) NULL UNIQUE,

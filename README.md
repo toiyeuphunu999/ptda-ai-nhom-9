@@ -19,6 +19,14 @@ Website bán sách trực tuyến cho đồ án WEB212, triển khai trên PHP/A
 - Thanh toán hiện hỗ trợ COD; thanh toán online, email, API nghiệp vụ và biến thể sách chưa nằm trong phạm vi hiện tại.
 - Tạo tài khoản Admin bằng `php tools/create_admin.php`; không có credential mặc định trong source.
 
+### Cấu hình đăng nhập Google
+
+1. Tạo OAuth Client ID loại **Web application** trong Google Cloud Console.
+2. Thêm đúng redirect URI: `http://localhost/auth/google/callback` (hoặc URL trong `GOOGLE_REDIRECT_URI`).
+3. Chạy migration `database/migrations/009_google_login.sql`.
+4. Khai báo `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` và `GOOGLE_REDIRECT_URI` trong môi trường chạy PHP.
+5. Mở `/login` và chọn **Tiếp tục với Google**.
+
 ## Chạy local
 
 Đặt DocumentRoot của Apache vào thư mục `public/`. Khi dùng PHP built-in server:
