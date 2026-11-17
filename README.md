@@ -33,3 +33,20 @@ Sau đó mở `http://localhost:8000/`.
 `/`, `/books`, `/books/{slug}`, `/categories/{slug}`, `/search`, `/cart`, `/checkout`, `/login`, `/register`, `/account`, `/orders`, `/about`, `/contact` và nhóm `/admin` (bao gồm `/admin/vouchers`).
 
 Ảnh bìa mặc định được lưu trong tài nguyên của website. Sách, khách hàng và đơn hàng được quản lý trong database của hệ thống.
+
+## Cấu trúc MVC
+
+- `app/Models`: truy vấn PDO, CRUD và transaction cho dữ liệu nghiệp vụ.
+- `app/Controllers`: tiếp nhận request, kiểm tra dữ liệu, gọi Model và render View.
+- `app/Views`: giao diện PHP/HTML, layout và partial dùng chung; không chứa SQL.
+- `app/Core`: Router, Controller cơ sở, View, Session, CSRF và Database.
+- `config/routes.php`: danh sách route của ứng dụng.
+- `app/Services/PayOSService.php`: adapter nhỏ để gọi API PayOS; không chứa giao diện.
+
+## Chạy project
+
+1. Tạo database `bookstore_web212` trong MySQL.
+2. Chạy `database/schema.sql`, các migration theo thứ tự và `database/seed.sql` nếu là môi trường mới.
+3. Kiểm tra thông tin database trong biến môi trường hoặc `config/database.php`.
+4. Trỏ Apache DocumentRoot vào thư mục `public/`, hoặc chạy `php -S localhost:8000 -t public`.
+5. Tạo tài khoản quản trị bằng `php tools/create_admin.php`.

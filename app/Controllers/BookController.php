@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
-use App\Core\Database;
 use App\Models\Book;
 use App\Models\Category;
 use App\Models\Review;
@@ -15,8 +14,8 @@ use Throwable;
 
 final class BookController extends Controller
 {
-    private function bookModel(): Book { return new Book(new Database(require dirname(__DIR__, 2) . '/config/database.php')); }
-    private function categoryModel(): Category { return new Category(new Database(require dirname(__DIR__, 2) . '/config/database.php')); }
+    private function bookModel(): Book { return new Book($this->database()); }
+    private function categoryModel(): Category { return new Category($this->database()); }
 
     public function index(): void
     {
@@ -45,7 +44,7 @@ final class BookController extends Controller
         $book = $this->bookModel()->findBySlug($slug);
         if (!$book) { http_response_code(404); $this->view->render('errors/error', ['title'=>'Không tìm thấy sách','errorCode'=>'404','errorTitle'=>'Không tìm thấy sách','errorMessage'=>'Tựa sách này không tồn tại hoặc đã được gỡ khỏi cửa hàng.','errorLabel'=>'Bạn có thể quay lại danh sách để tiếp tục tìm một cuốn sách khác.','primaryUrl'=>'/books','primaryLabel'=>'Xem danh sách sách']); return; }
         Session::start();
-        $database = new Database(require dirname(__DIR__, 2) . '/config/database.php');
+        $database = $this->database();
         $reviewModel = new Review($database);
         $user = Session::get('user');
         $canReview = is_array($user) && $reviewModel->canReview((int)$user['id'], (int)$book['id']) && !$reviewModel->hasReview((int)$user['id'], (int)$book['id']);
@@ -58,7 +57,7 @@ final class BookController extends Controller
         try {
             Csrf::verify($_POST['_csrf'] ?? null);
             $book = $this->bookModel()->findById((int)$id);
-            $reviewModel = new Review(new Database(require dirname(__DIR__, 2) . '/config/database.php'));
+            $reviewModel = new Review($this->database());
             if (!$book || $book['status'] !== 'published' || !$reviewModel->canReview((int)$user['id'], (int)$id)) throw new \RuntimeException('Chỉ khách hàng đã mua sách mới có thể đánh giá.');
             if ($reviewModel->hasReview((int)$user['id'], (int)$id)) throw new \RuntimeException('Bạn đã đánh giá sách này rồi.');
             $reviewModel->save((int)$user['id'], (int)$id, (int)($_POST['rating'] ?? 0), (string)($_POST['comment'] ?? ''));

@@ -5,9 +5,9 @@ use App\Helpers\ViewHelper;
 $settings = $settings ?? [];
 $settingMap = [];
 foreach ($settings as $setting) $settingMap[$setting['setting_key']] = $setting;
-$value = static fn(string $key, string $fallback = ''): string => ViewHelper::escape((string)($settingMap[$key]['setting_value'] ?? $fallback));
+$value = function (string $key, string $fallback = '') use ($settingMap): string { return ViewHelper::escape((string)($settingMap[$key]['setting_value'] ?? $fallback)); };
 $payosConfig = $payosConfig ?? [];
-$payosValue = static fn(string $key, string $fallback = ''): string => ViewHelper::escape((string)($payosConfig[$key] ?? $fallback));
+$payosValue = function (string $key, string $fallback = '') use ($payosConfig): string { return ViewHelper::escape((string)($payosConfig[$key] ?? $fallback)); };
 $configured = (bool)($payosConfigured ?? false);
 ?>
 <div class="section-heading report-heading">

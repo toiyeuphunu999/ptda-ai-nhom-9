@@ -1,4 +1,3 @@
-<?php $successMessage = \App\Core\Session::pullFlash('success'); $failureMessage = \App\Core\Session::pullFlash('failure'); ?>
 <?php if (!empty($successMessage)): ?>
     <div class="flash-message flash-success" role="status"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span><?= \App\Helpers\ViewHelper::escape((string)$successMessage) ?></div>
 <?php endif; ?>

@@ -1,7 +1,5 @@
 <?php
-\App\Core\Session::start();
-$cartCount = array_sum(array_map('intval', (array) \App\Core\Session::get('cart', [])));
-$headerUser = \App\Core\Session::get('user');
+$headerUser = $currentUser ?? null;
 $isAdmin = is_array($headerUser) && ($headerUser['role'] ?? '') === 'admin';
 $accountUrl = is_array($headerUser) ? '/account' : '/login';
 $accountLabel = is_array($headerUser) ? 'Tài khoản' : 'Đăng nhập';
