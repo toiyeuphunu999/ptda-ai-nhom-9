@@ -15,18 +15,55 @@ window.togglePasswordVisibility = (event, button) => {
   return false;
 };
 
+const setNavigationDrawerState = (target, button, open) => {
+  const scrim = document.querySelector('[data-nav-scrim]');
+  const closeButton = target.querySelector('.drawer-close');
+  button.setAttribute('aria-expanded', String(open));
+  button.setAttribute('aria-label', open ? 'Đóng menu' : 'Mở menu');
+  target.classList.toggle('is-open', open);
+  document.body.classList.toggle('nav-drawer-open', open);
+  if (scrim) scrim.hidden = !open;
+
+  if (open) {
+    closeButton?.focus();
+  } else {
+    button.focus();
+  }
+};
+
 window.toggleNavigationMenu = (event, button) => {
   event.preventDefault();
   event.stopPropagation();
   const target = document.getElementById(button.getAttribute('aria-controls'));
   if (!target) return false;
   const expanded = button.getAttribute('aria-expanded') === 'true';
-  button.setAttribute('aria-expanded', String(!expanded));
-  target.classList.toggle('is-open', !expanded);
+  if (target.matches('[data-drawer]')) {
+    setNavigationDrawerState(target, button, !expanded);
+  } else {
+    button.setAttribute('aria-expanded', String(!expanded));
+    target.classList.toggle('is-open', !expanded);
+  }
   return false;
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  const drawer = document.querySelector('[data-drawer]');
+  const drawerButton = drawer ? document.querySelector(`[aria-controls="${drawer.id}"]`) : null;
+  const scrim = document.querySelector('[data-nav-scrim]');
+  const closeButton = drawer?.querySelector('.drawer-close');
+
+  const closeDrawer = () => {
+    if (drawer && drawerButton && drawer.classList.contains('is-open')) {
+      setNavigationDrawerState(drawer, drawerButton, false);
+    }
+  };
+
+  scrim?.addEventListener('click', closeDrawer);
+  closeButton?.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeDrawer();
+  });
+
   document.addEventListener('click', (event) => {
     const button = event.target.closest('[data-toggle-password]');
     if (!button) return;

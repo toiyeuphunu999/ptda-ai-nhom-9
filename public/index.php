@@ -12,6 +12,8 @@ use App\Controllers\PageController;
 use App\Core\Router;
 use App\Core\View;
 
+date_default_timezone_set('Asia/Bangkok');
+
 spl_autoload_register(function (string $class): void {
     $prefix = 'App\\';
     if (strncmp($class, $prefix, strlen($prefix)) !== 0) return;

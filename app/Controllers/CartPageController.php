@@ -64,7 +64,8 @@ final class CartPageController extends Controller
                 $subtotal = array_reduce($this->cartItems(), fn(int $sum, array $item): int => $sum + (int)$item['book']['price'] * (int)$item['quantity'], 0);
                 $voucherModel = new Voucher(new Database(require dirname(__DIR__, 2) . '/config/database.php'));
                 $voucher = $voucherModel->findByCode($voucherCode);
-                if (!$voucher || !Voucher::isUsable($voucher, $subtotal)) throw new \RuntimeException('Mã giảm giá không tồn tại hoặc không đủ điều kiện.');
+                if (!$voucher) throw new \RuntimeException('Mã giảm giá không tồn tại.');
+                if (!Voucher::isUsable($voucher, $subtotal)) throw new \RuntimeException('Mã giảm giá chưa đủ điều kiện áp dụng cho đơn hàng này.');
                 $voucherId = (int)$voucher['id'];
             }
             $orderModel = new Order(new Database(require dirname(__DIR__, 2) . '/config/database.php'));
@@ -90,7 +91,7 @@ final class CartPageController extends Controller
             header('Location: /orders');
         } catch (Throwable $exception) {
             http_response_code(422);
-            $this->view->render('shop/checkout', ['title'=>'Thanh toán','error'=>$exception->getMessage(),'items'=>$this->cartItems(), 'paymentMethod'=>$_POST['payment_method'] ?? 'cod']);
+            $this->view->render('shop/checkout', ['title'=>'Thanh toán','error'=>$exception->getMessage(),'items'=>$this->cartItems(), 'paymentMethod'=>$_POST['payment_method'] ?? 'cod', 'voucherCode'=>(string)($_POST['voucher_code'] ?? '')]);
         }
     }
 

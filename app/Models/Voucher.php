@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Core\Database;
 use DateTime;
+use DateTimeZone;
 use RuntimeException;
 
 final class Voucher
@@ -26,11 +27,12 @@ final class Voucher
 
     public static function isUsable(array $voucher, int $subtotal): bool
     {
-        $now = new DateTime();
+        $timezone = new DateTimeZone('Asia/Bangkok');
+        $now = new DateTime('now', $timezone);
         return $voucher['status'] === 'active'
             && $subtotal >= (int)$voucher['min_order_amount']
-            && (!$voucher['starts_at'] || new DateTime($voucher['starts_at']) <= $now)
-            && (!$voucher['expires_at'] || new DateTime($voucher['expires_at']) >= $now)
+            && (!$voucher['starts_at'] || new DateTime($voucher['starts_at'], $timezone) <= $now)
+            && (!$voucher['expires_at'] || new DateTime($voucher['expires_at'], $timezone) >= $now)
             && ($voucher['usage_limit'] === null || (int)$voucher['used_count'] < (int)$voucher['usage_limit'])
             && ($voucher['type'] === 'percent' ? (int)$voucher['value'] >= 1 && (int)$voucher['value'] <= 100 : (int)$voucher['value'] > 0);
     }
