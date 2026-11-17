@@ -27,6 +27,14 @@ final class PayOSService
         $appUrl = rtrim((string)($this->config['app_url'] ?? getenv('APP_URL') ?: 'http://localhost'), '/');
         $returnUrl = $appUrl . '/payment/payos/return';
         $cancelUrl = $appUrl . '/payment/payos/cancel';
+        $paymentItems = [];
+        foreach ($items as $item) {
+            $paymentItems[] = [
+                'name' => (string)$item['name'],
+                'quantity' => (int)$item['quantity'],
+                'price' => (int)$item['price'],
+            ];
+        }
         $payload = [
             'orderCode' => $orderCode,
             'amount' => $amount,
@@ -34,11 +42,7 @@ final class PayOSService
             'buyerName' => $buyerName,
             'buyerPhone' => $buyerPhone,
             'buyerAddress' => $buyerAddress,
-            'items' => array_map(static fn(array $item): array => [
-                'name' => (string)$item['name'],
-                'quantity' => (int)$item['quantity'],
-                'price' => (int)$item['price'],
-            ], $items),
+            'items' => $paymentItems,
             'cancelUrl' => $cancelUrl,
             'returnUrl' => $returnUrl,
             'expiredAt' => time() + 900,

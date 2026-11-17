@@ -4,13 +4,13 @@
 
 1. Tạo database `bookstore_web212`.
 2. Chạy `database/schema.sql`.
-3. Chạy migrations theo thứ tự số: `002_reviews_vouchers.sql`, `003_real_publishers.sql`, `004_payments_customer_tiers_reports.sql`, `005_system_settings.sql`, `006_repair_sales_reports.sql`.
+3. Chạy migrations theo thứ tự số: `002_reviews_vouchers.sql`, `003_real_publishers.sql`, `004_payments_customer_tiers_reports.sql`, `005_system_settings.sql`, `006_repair_sales_reports.sql`, `007_repair_customer_tier_utf8.sql`.
 4. Chạy `database/seed.sql` ở local mới.
 5. Không chạy seed lại trên dữ liệu thật khi chưa kiểm tra duplicate và tồn kho.
 
 ## Mô hình hiện tại
 
-Các bảng nghiệp vụ gồm tài khoản, hạng khách hàng, danh mục, sách, đơn hàng, chi tiết đơn, thanh toán, lịch sử trạng thái đơn, voucher và đánh giá. Các view `v_daily_sales_report`, `v_book_sales_report`, `v_customer_sales_report`, `v_order_payment_report` phục vụ báo cáo và phân tích.
+Các bảng nghiệp vụ gồm tài khoản, hạng khách hàng, danh mục, sách, đơn hàng, chi tiết đơn, thanh toán, lịch sử trạng thái đơn, voucher và đánh giá. Báo cáo và phân tích dùng truy vấn trực tiếp trong `app/Models/Order.php`, không tạo view trong database.
 
 ## Quy tắc an toàn
 

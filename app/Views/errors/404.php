@@ -1,1 +1,1 @@
-<div class="container error-page"><p class="eyebrow">404</p><h1>Không tìm thấy trang</h1><p>Đường dẫn bạn truy cập không tồn tại trên website.</p><a class="button button-primary" href="/">Về trang chủ</a></div>
+<?php require __DIR__ . '/error.php'; ?>

@@ -40,6 +40,12 @@ final class Router
 
         http_response_code(404);
         (new View(dirname(__DIR__) . '/Views', dirname(__DIR__) . '/Views/layouts'))
-            ->render('errors/404', ['title' => 'Không tìm thấy trang']);
+            ->render('errors/error', [
+                'title' => 'Không tìm thấy trang',
+                'errorCode' => '404',
+                'errorTitle' => 'Không tìm thấy trang',
+                'errorMessage' => 'Đường dẫn bạn truy cập không tồn tại trên website.',
+                'errorLabel' => 'Hãy kiểm tra lại đường dẫn hoặc quay về trang chủ để tiếp tục.',
+            ]);
     }
 }

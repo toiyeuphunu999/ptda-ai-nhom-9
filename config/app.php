@@ -10,6 +10,6 @@ return [
         'client_id' => getenv('PAYOS_CLIENT_ID') ?: '',
         'api_key' => getenv('PAYOS_API_KEY') ?: '',
         'checksum_key' => getenv('PAYOS_CHECKSUM_KEY') ?: '',
-        'api_url' => getenv('PAYOS_API_URL') ?: 'https://api-merchant.payos.vn',
+        'api_url' => 'https://api-merchant.payos.vn',
     ],
 ];

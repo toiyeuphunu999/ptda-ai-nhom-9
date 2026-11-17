@@ -137,6 +137,7 @@ final class Book
 
     public function create(array $data): int
     {
+        $data['slug'] = $this->uniqueSlug((string)$data['title']);
         $statement = $this->database->connection()->prepare(
             'INSERT INTO books (category_id, title, slug, author, publisher, price, original_price, description, stock_quantity, status) '
             . 'VALUES (:category_id, :title, :slug, :author, :publisher, :price, :original_price, :description, :stock_quantity, :status)'
@@ -147,6 +148,7 @@ final class Book
 
     public function update(int $id, array $data): void
     {
+        $data['slug'] = $this->uniqueSlug((string)$data['title'], $id);
         $data['id'] = $id;
         $statement = $this->database->connection()->prepare(
             'UPDATE books SET category_id = :category_id, title = :title, slug = :slug, author = :author, '
@@ -154,6 +156,35 @@ final class Book
             . 'stock_quantity = :stock_quantity, status = :status WHERE id = :id'
         );
         $statement->execute($data);
+    }
+
+    private function uniqueSlug(string $title, ?int $ignoreId = null): string
+    {
+        $replacements = [
+            'à'=>'a','á'=>'a','ả'=>'a','ã'=>'a','ạ'=>'a','ă'=>'a','ắ'=>'a','ằ'=>'a','ẳ'=>'a','ẵ'=>'a','ặ'=>'a','â'=>'a','ấ'=>'a','ầ'=>'a','ẩ'=>'a','ẫ'=>'a','ậ'=>'a',
+            'À'=>'A','Á'=>'A','Ả'=>'A','Ã'=>'A','Ạ'=>'A','Ă'=>'A','Ắ'=>'A','Ằ'=>'A','Ẳ'=>'A','Ẵ'=>'A','Ặ'=>'A','Â'=>'A','Ấ'=>'A','Ầ'=>'A','Ẩ'=>'A','Ẫ'=>'A','Ậ'=>'A',
+            'đ'=>'d','Đ'=>'D','è'=>'e','é'=>'e','ẻ'=>'e','ẽ'=>'e','ẹ'=>'e','ê'=>'e','ế'=>'e','ề'=>'e','ể'=>'e','ễ'=>'e','ệ'=>'e',
+            'È'=>'E','É'=>'E','Ẻ'=>'E','Ẽ'=>'E','Ẹ'=>'E','Ê'=>'E','Ế'=>'E','Ề'=>'E','Ể'=>'E','Ễ'=>'E','Ệ'=>'E',
+            'ì'=>'i','í'=>'i','ỉ'=>'i','ĩ'=>'i','ị'=>'i','Ì'=>'I','Í'=>'I','Ỉ'=>'I','Ĩ'=>'I','Ị'=>'I',
+            'ò'=>'o','ó'=>'o','ỏ'=>'o','õ'=>'o','ọ'=>'o','ô'=>'o','ố'=>'o','ồ'=>'o','ổ'=>'o','ỗ'=>'o','ộ'=>'o','ơ'=>'o','ớ'=>'o','ờ'=>'o','ở'=>'o','ỡ'=>'o','ợ'=>'o',
+            'Ò'=>'O','Ó'=>'O','Ỏ'=>'O','Õ'=>'O','Ọ'=>'O','Ô'=>'O','Ố'=>'O','Ồ'=>'O','Ổ'=>'O','Ỗ'=>'O','Ộ'=>'O','Ơ'=>'O','Ớ'=>'O','Ờ'=>'O','Ở'=>'O','Ỡ'=>'O','Ợ'=>'O',
+            'ù'=>'u','ú'=>'u','ủ'=>'u','ũ'=>'u','ụ'=>'u','ư'=>'u','ứ'=>'u','ừ'=>'u','ử'=>'u','ữ'=>'u','ự'=>'u','Ù'=>'U','Ú'=>'U','Ủ'=>'U','Ũ'=>'U','Ụ'=>'U','Ư'=>'U','Ứ'=>'U','Ừ'=>'U','Ử'=>'U','Ữ'=>'U','Ự'=>'U',
+            'ỳ'=>'y','ý'=>'y','ỷ'=>'y','ỹ'=>'y','ỵ'=>'y','Ỳ'=>'Y','Ý'=>'Y','Ỷ'=>'Y','Ỹ'=>'Y','Ỵ'=>'Y'
+        ];
+        $slugBase = strtolower(strtr(trim($title), $replacements));
+        $slugBase = trim((string)preg_replace('/[^a-z0-9]+/', '-', $slugBase), '-');
+        $slugBase = $slugBase !== '' ? $slugBase : 'book';
+        $slug = $slugBase;
+        $suffix = 2;
+        do {
+            $sql = 'SELECT id FROM books WHERE slug = :slug' . ($ignoreId !== null ? ' AND id <> :id' : '') . ' LIMIT 1';
+            $statement = $this->database->connection()->prepare($sql);
+            $params = ['slug' => $slug];
+            if ($ignoreId !== null) $params['id'] = $ignoreId;
+            $statement->execute($params);
+            if (!$statement->fetch()) return $slug;
+            $slug = $slugBase . '-' . $suffix++;
+        } while (true);
     }
 
     public function delete(int $id): void

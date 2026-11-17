@@ -221,14 +221,47 @@ final class Order
              WHERE status IN ('confirmed', 'shipping', 'completed')"
         )->fetch() ?: [];
         $payments = $pdo->query(
-            "SELECT payment_method, payment_status, COUNT(*) AS transactions, COALESCE(SUM(total), 0) AS amount
-             FROM v_order_payment_report
-             GROUP BY payment_method, payment_status
+            "SELECT COALESCE(p.method, 'cod') AS payment_method,
+                    COALESCE(p.status, 'pending') AS payment_status,
+                    COUNT(*) AS transactions, COALESCE(SUM(o.total), 0) AS amount
+             FROM orders o
+             LEFT JOIN payments p ON p.order_id = o.id
+             GROUP BY COALESCE(p.method, 'cod'), COALESCE(p.status, 'pending')
              ORDER BY transactions DESC"
         )->fetchAll();
-        $daily = $pdo->query('SELECT * FROM v_daily_sales_report ORDER BY sale_date DESC LIMIT 30')->fetchAll();
-        $books = $pdo->query('SELECT * FROM v_book_sales_report ORDER BY revenue DESC, units_sold DESC LIMIT 10')->fetchAll();
-        $customers = $pdo->query('SELECT * FROM v_customer_sales_report ORDER BY total_spent DESC, order_count DESC')->fetchAll();
+        $daily = $pdo->query(
+            "SELECT DATE(created_at) AS sale_date, COUNT(*) AS order_count,
+                    COALESCE(SUM(subtotal), 0) AS gross_revenue,
+                    COALESCE(SUM(discount_amount), 0) AS total_discount,
+                    COALESCE(SUM(total), 0) AS net_revenue
+             FROM orders
+             WHERE status IN ('confirmed', 'shipping', 'completed')
+             GROUP BY DATE(created_at) ORDER BY sale_date DESC LIMIT 30"
+        )->fetchAll();
+        $books = $pdo->query(
+            "SELECT oi.book_id, oi.book_title, b.author, c.name AS category_name,
+                    SUM(oi.quantity) AS units_sold, SUM(oi.line_total) AS revenue
+             FROM order_items oi
+             INNER JOIN orders o ON o.id = oi.order_id
+             INNER JOIN books b ON b.id = oi.book_id
+             INNER JOIN categories c ON c.id = b.category_id
+             WHERE o.status IN ('confirmed', 'shipping', 'completed')
+             GROUP BY oi.book_id, oi.book_title, b.author, c.name
+             ORDER BY revenue DESC, units_sold DESC LIMIT 10"
+        )->fetchAll();
+        $customers = $pdo->query(
+            "SELECT u.id AS customer_id, u.name, u.email,
+                    ct.code AS customer_type, ct.name AS customer_tier,
+                    COUNT(DISTINCT CASE WHEN o.status IN ('confirmed', 'shipping', 'completed') THEN o.id END) AS order_count,
+                    COALESCE(SUM(CASE WHEN o.status IN ('confirmed', 'shipping', 'completed') THEN o.total ELSE 0 END), 0) AS total_spent,
+                    MAX(o.created_at) AS last_order_at
+             FROM users u
+             LEFT JOIN customer_tiers ct ON ct.id = u.customer_tier_id
+             LEFT JOIN orders o ON o.user_id = u.id
+             WHERE u.role = 'customer'
+             GROUP BY u.id, u.name, u.email, ct.code, ct.name
+             ORDER BY total_spent DESC, order_count DESC"
+        )->fetchAll();
         $history = $pdo->query(
             'SELECT order_status_history.*, orders.order_code, users.name AS changed_by_name
              FROM order_status_history

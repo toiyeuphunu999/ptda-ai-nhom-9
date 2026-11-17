@@ -18,9 +18,17 @@ final class View
             : $this->layoutPath . '/shop.php';
 
         extract($data, EXTR_SKIP);
+        Session::start();
+        $currentUser = Session::get('user');
+        $cartCount = array_sum(array_map('intval', (array)Session::get('cart', [])));
+        $successMessage = Session::pullFlash('success');
+        $failureMessage = Session::pullFlash('failure');
         ob_start();
         require $contentView;
         $content = (string) ob_get_clean();
+        ob_start();
+        require dirname(__DIR__) . '/Views/partials/flash.php';
+        $content = (string)ob_get_clean() . $content;
         require $layoutFile;
     }
 }
