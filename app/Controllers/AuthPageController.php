@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Csrf;
 use App\Core\Session;
 use App\Models\User;
+use App\Models\MemberPoint;
 use Throwable;
 
 final class AuthPageController extends Controller
@@ -35,9 +36,12 @@ final class AuthPageController extends Controller
         try {
             Csrf::verify($_POST['_csrf'] ?? null);
             $password = (string)($_POST['password'] ?? '');
+            $referralCode = trim((string)($_POST['referral_code'] ?? ''));
             if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 8) throw new \RuntimeException('Vui lòng nhập tên, email hợp lệ và mật khẩu tối thiểu 8 ký tự.');
             if ($this->users()->findByEmail($email)) throw new \RuntimeException('Email này đã được đăng ký.');
-            $id = $this->users()->create($name, $email, $password);
+            if ($referralCode !== '' && !$this->users()->findByReferralCode($referralCode)) throw new \RuntimeException('Mã giới thiệu không tồn tại.');
+            $id = $this->users()->create($name, $email, $password, $referralCode);
+            (new MemberPoint($this->database()))->earnForReferral($id);
             Session::put('user', ['id'=>$id, 'name'=>$name, 'role'=>'customer']);
             header('Location: /account');
         } catch (Throwable $exception) { $this->view->render('shop/register', ['title' => 'Đăng ký', 'error' => $exception->getMessage(), 'name' => $name, 'email' => $email]); }
