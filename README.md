@@ -13,6 +13,7 @@ Website bán sách trực tuyến cho đồ án WEB212, triển khai trên PHP/A
 - Đơn hàng dùng transaction và khóa tồn kho trong lúc tạo đơn.
 - Đánh giá và nhận xét chỉ dành cho khách hàng đã mua sách.
 - Admin tạo voucher phần trăm/số tiền, đặt đơn tối thiểu, thời hạn và giới hạn lượt dùng.
+- Thành viên tích điểm khi hoàn tất đơn hàng, đánh giá sách và giới thiệu người dùng mới.
 - Dashboard Admin thống kê doanh thu tổng, theo ngày/tháng, sách bán chạy và đơn hàng gần đây.
 - Database có hạng khách hàng thường/VIP, bảng thanh toán online mở rộng, lịch sử trạng thái đơn và các view báo cáo bán hàng.
 - Thanh toán hiện hỗ trợ COD; thanh toán online, email, API nghiệp vụ và biến thể sách chưa nằm trong phạm vi hiện tại.

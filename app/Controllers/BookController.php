@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Models\Book;
 use App\Models\Category;
 use App\Models\Review;
+use App\Models\MemberPoint;
 use App\Core\Csrf;
 use App\Core\Session;
 use Throwable;
@@ -60,7 +61,8 @@ final class BookController extends Controller
             $reviewModel = new Review($this->database());
             if (!$book || $book['status'] !== 'published' || !$reviewModel->canReview((int)$user['id'], (int)$id)) throw new \RuntimeException('Chỉ khách hàng đã mua sách mới có thể đánh giá.');
             if ($reviewModel->hasReview((int)$user['id'], (int)$id)) throw new \RuntimeException('Bạn đã đánh giá sách này rồi.');
-            $reviewModel->save((int)$user['id'], (int)$id, (int)($_POST['rating'] ?? 0), (string)($_POST['comment'] ?? ''));
+            $reviewId = $reviewModel->save((int)$user['id'], (int)$id, (int)($_POST['rating'] ?? 0), (string)($_POST['comment'] ?? ''));
+            (new MemberPoint($this->database()))->earnForReview((int)$user['id'], $reviewId);
             header('Location: /books/' . rawurlencode((string)$book['slug']) . '#reviews');
         } catch (Throwable $exception) {
             http_response_code(422);

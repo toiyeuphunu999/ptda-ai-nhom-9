@@ -383,6 +383,9 @@ final class Order
                 }
             }
             $pdo->commit();
+            if ($status === 'completed') {
+                (new MemberPoint($this->database))->earnForOrder((int)$current['user_id'], $id, (int)$current['total']);
+            }
         } catch (\Throwable $exception) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             throw $exception;
