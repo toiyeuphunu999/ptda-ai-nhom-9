@@ -37,6 +37,19 @@ final class SystemSetting
         ];
     }
 
+    public function googleConfig(): array
+    {
+        $get = function (string $key): string {
+            $stored = $this->get($key);
+            return ($stored !== null && $stored !== '') ? $stored : (string)(getenv($key) ?: '');
+        };
+        return [
+            'client_id' => $get('GOOGLE_CLIENT_ID'),
+            'client_secret' => $get('GOOGLE_CLIENT_SECRET'),
+            'redirect_uri' => $get('GOOGLE_REDIRECT_URI') ?: ($this->currentHttpHost() . '/auth/google/callback'),
+        ];
+    }
+
     private function currentHttpHost(): string
     {
         $host = preg_replace('/[^a-zA-Z0-9.:\-\[\]]/', '', (string)($_SERVER['HTTP_HOST'] ?? ''));

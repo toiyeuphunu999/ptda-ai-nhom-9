@@ -60,6 +60,38 @@ final class User
         return $user ?: null;
     }
 
+    public function findByGoogleId(string $googleId): ?array
+    {
+        $statement = $this->database->connection()->prepare('SELECT * FROM users WHERE google_id = :google_id LIMIT 1');
+        $statement->execute(['google_id' => $googleId]);
+        $user = $statement->fetch();
+        return $user ?: null;
+    }
+
+    public function linkGoogleId(int $id, string $googleId): void
+    {
+        $statement = $this->database->connection()->prepare('UPDATE users SET google_id = :google_id WHERE id = :id');
+        $statement->execute(['google_id' => $googleId, 'id' => $id]);
+    }
+
+    public function createFromGoogle(string $name, string $email, string $googleId): int
+    {
+        $statement = $this->database->connection()->prepare(
+            "INSERT INTO users (name, email, password_hash, google_id, customer_tier_id, referral_code)
+             VALUES (:name, :email, :password_hash, :google_id, (SELECT id FROM customer_tiers WHERE code = 'regular' LIMIT 1), NULL)"
+        );
+        $statement->execute([
+            'name' => $name,
+            'email' => $email,
+            'password_hash' => password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT),
+            'google_id' => $googleId,
+        ]);
+        $id = (int)$this->database->connection()->lastInsertId();
+        $code = 'MB' . str_pad((string)$id, 6, '0', STR_PAD_LEFT);
+        $this->database->connection()->prepare('UPDATE users SET referral_code = :referral_code WHERE id = :id')->execute(['referral_code' => $code, 'id' => $id]);
+        return $id;
+    }
+
     public function updateName(int $id, string $name): void
     {
         $name = trim($name);

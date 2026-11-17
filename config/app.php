@@ -12,4 +12,9 @@ return [
         'checksum_key' => getenv('PAYOS_CHECKSUM_KEY') ?: '',
         'api_url' => 'https://api-merchant.payos.vn',
     ],
+    'google' => [
+        'client_id' => getenv('GOOGLE_CLIENT_ID') ?: '',
+        'client_secret' => getenv('GOOGLE_CLIENT_SECRET') ?: '',
+        'redirect_uri' => getenv('GOOGLE_REDIRECT_URI') ?: ((getenv('APP_URL') ?: 'http://localhost') . '/auth/google/callback'),
+    ],
 ];
