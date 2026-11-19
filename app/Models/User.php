@@ -68,6 +68,85 @@ final class User
         return $user ?: null;
     }
 
+    public function createVerificationToken(int $id): string
+    {
+        $token = bin2hex(random_bytes(32));
+        $hash = hash('sha256', $token);
+        $statement = $this->database->connection()->prepare(
+            'UPDATE users SET email_verification_token_hash = :token_hash,
+             email_verification_expires_at = DATE_ADD(NOW(), INTERVAL 24 HOUR),
+             email_verified_at = NULL WHERE id = :id'
+        );
+        $statement->execute(['token_hash' => $hash, 'id' => $id]);
+        return $token;
+    }
+
+    public function verifyEmail(string $token): bool
+    {
+        $hash = hash('sha256', trim($token));
+        $statement = $this->database->connection()->prepare(
+            'UPDATE users SET email_verified_at = NOW(), email_verification_token_hash = NULL,
+             email_verification_expires_at = NULL
+             WHERE email_verification_token_hash = :token_hash
+             AND email_verification_expires_at >= NOW()
+             AND email_verified_at IS NULL'
+        );
+        $statement->execute(['token_hash' => $hash]);
+        return $statement->rowCount() > 0;
+    }
+
+    public function createPasswordResetToken(int $id): string
+    {
+        $token = bin2hex(random_bytes(32));
+        $pdo = $this->database->connection();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('DELETE FROM password_reset_tokens WHERE user_id = :user_id OR expires_at < NOW()')
+                ->execute(['user_id' => $id]);
+            $pdo->prepare(
+                'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+                 VALUES (:user_id, :token_hash, DATE_ADD(NOW(), INTERVAL 60 MINUTE))'
+            )->execute(['user_id' => $id, 'token_hash' => hash('sha256', $token)]);
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $exception;
+        }
+        return $token;
+    }
+
+    public function resetPassword(string $token, string $password): bool
+    {
+        $pdo = $this->database->connection();
+        $pdo->beginTransaction();
+        try {
+            $statement = $pdo->prepare(
+                'SELECT user_id FROM password_reset_tokens
+                 WHERE token_hash = :token_hash AND expires_at >= NOW() AND used_at IS NULL
+                 LIMIT 1 FOR UPDATE'
+            );
+            $statement->execute(['token_hash' => hash('sha256', trim($token))]);
+            $reset = $statement->fetch();
+            if (!$reset) {
+                $pdo->rollBack();
+                return false;
+            }
+
+            $pdo->prepare('UPDATE users SET password_hash = :password_hash WHERE id = :id')->execute([
+                'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                'id' => (int)$reset['user_id'],
+            ]);
+            $pdo->prepare('UPDATE password_reset_tokens SET used_at = NOW() WHERE token_hash = :token_hash')->execute([
+                'token_hash' => hash('sha256', trim($token)),
+            ]);
+            $pdo->commit();
+            return true;
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $exception;
+        }
+    }
+
     public function linkGoogleId(int $id, string $googleId): void
     {
         $statement = $this->database->connection()->prepare('UPDATE users SET google_id = :google_id WHERE id = :id');
@@ -77,8 +156,8 @@ final class User
     public function createFromGoogle(string $name, string $email, string $googleId): int
     {
         $statement = $this->database->connection()->prepare(
-            "INSERT INTO users (name, email, password_hash, google_id, customer_tier_id, referral_code)
-             VALUES (:name, :email, :password_hash, :google_id, (SELECT id FROM customer_tiers WHERE code = 'regular' LIMIT 1), NULL)"
+            "INSERT INTO users (name, email, email_verified_at, password_hash, google_id, customer_tier_id, referral_code)
+             VALUES (:name, :email, NOW(), :password_hash, :google_id, (SELECT id FROM customer_tiers WHERE code = 'regular' LIMIT 1), NULL)"
         );
         $statement->execute([
             'name' => $name,

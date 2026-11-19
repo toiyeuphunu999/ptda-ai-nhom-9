@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
     email VARCHAR(190) NOT NULL UNIQUE,
+    email_verified_at DATETIME NULL,
+    email_verification_token_hash CHAR(64) NULL,
+    email_verification_expires_at DATETIME NULL,
     password_hash VARCHAR(255) NOT NULL,
     google_id VARCHAR(100) NULL UNIQUE,
     role ENUM('customer', 'admin') NOT NULL DEFAULT 'customer',
@@ -178,6 +181,22 @@ ALTER TABLE users
 ALTER TABLE users
     ADD CONSTRAINT fk_users_referred_by FOREIGN KEY (referred_by)
         REFERENCES users(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+CREATE INDEX idx_users_email_verification_token
+    ON users(email_verification_token_hash);
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_password_reset_tokens_user (user_id),
+    INDEX idx_password_reset_tokens_expires (expires_at),
+    CONSTRAINT fk_password_reset_tokens_user FOREIGN KEY (user_id) REFERENCES users(id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS member_point_transactions (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

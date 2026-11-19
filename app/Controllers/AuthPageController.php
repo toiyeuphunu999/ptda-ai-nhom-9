@@ -6,7 +6,9 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Csrf;
+use App\Core\EmailTemplate;
 use App\Core\Session;
+use App\Core\SmtpMailer;
 use App\Models\User;
 use App\Models\MemberPoint;
 use App\Models\SystemSetting;
@@ -17,6 +19,67 @@ final class AuthPageController extends Controller
     private function users(): User { return new User($this->database()); }
     public function login(): void { Session::start(); $this->view->render('shop/login', ['title' => 'Đăng nhập']); }
     public function register(): void { Session::start(); $this->view->render('shop/register', ['title' => 'Đăng ký']); }
+
+    public function forgotPassword(): void
+    {
+        Session::start();
+        $this->view->render('shop/forgot_password', ['title' => 'Quên mật khẩu']);
+    }
+
+    public function forgotPasswordSubmit(): void
+    {
+        Session::start();
+        $email = trim((string)($_POST['email'] ?? ''));
+        try {
+            Csrf::verify($_POST['_csrf'] ?? null);
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                throw new \RuntimeException('Vui lòng nhập email hợp lệ.');
+            }
+
+            $account = $this->users()->findByEmail($email);
+            if ($account) {
+                $token = $this->users()->createPasswordResetToken((int)$account['id']);
+                $this->sendPasswordResetEmail($account['email'], $account['name'], $token);
+            }
+            Session::flash('success', 'Nếu email tồn tại, hướng dẫn đặt lại mật khẩu đã được gửi. Hãy kiểm tra cả mục Spam.');
+            header('Location: /login');
+        } catch (Throwable $exception) {
+            $this->view->render('shop/forgot_password', ['title' => 'Quên mật khẩu', 'error' => $exception->getMessage(), 'email' => $email]);
+        }
+    }
+
+    public function resetPassword(): void
+    {
+        Session::start();
+        $token = trim((string)($_GET['token'] ?? ''));
+        if ($token === '') {
+            Session::flash('failure', 'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
+            header('Location: /forgot-password');
+            return;
+        }
+        $this->view->render('shop/reset_password', ['title' => 'Đặt lại mật khẩu', 'token' => $token]);
+    }
+
+    public function resetPasswordSubmit(): void
+    {
+        Session::start();
+        $token = trim((string)($_POST['token'] ?? ''));
+        try {
+            Csrf::verify($_POST['_csrf'] ?? null);
+            $password = (string)($_POST['password'] ?? '');
+            $confirmation = (string)($_POST['password_confirmation'] ?? '');
+            if ($token === '') throw new \RuntimeException('Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
+            if (strlen($password) < 8) throw new \RuntimeException('Mật khẩu mới phải có ít nhất 8 ký tự.');
+            if ($password !== $confirmation) throw new \RuntimeException('Mật khẩu xác nhận không khớp.');
+            if (!$this->users()->resetPassword($token, $password)) {
+                throw new \RuntimeException('Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
+            }
+            Session::flash('success', 'Đặt lại mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới.');
+            header('Location: /login');
+        } catch (Throwable $exception) {
+            $this->view->render('shop/reset_password', ['title' => 'Đặt lại mật khẩu', 'error' => $exception->getMessage(), 'token' => $token]);
+        }
+    }
 
     public function googleRedirect(): void
     {
@@ -93,6 +156,7 @@ final class AuthPageController extends Controller
             Csrf::verify($_POST['_csrf'] ?? null);
             $account = filter_var($email, FILTER_VALIDATE_EMAIL) ? $this->users()->findByEmail($email) : null;
             if (!$account || !password_verify((string)($_POST['password'] ?? ''), $account['password_hash'])) throw new \RuntimeException('Email hoặc mật khẩu không đúng.');
+            if (empty($account['email_verified_at'])) throw new \RuntimeException('Vui lòng xác thực email trước khi đăng nhập.');
             $user = ['id'=>(int)$account['id'], 'name'=>$account['name'], 'role'=>$account['role']];
             Session::regenerate(); Session::put('user', $user);
             header('Location: ' . ($user['role'] === 'admin' ? '/admin' : '/account'));
@@ -111,9 +175,45 @@ final class AuthPageController extends Controller
             if ($referralCode !== '' && !$this->users()->findByReferralCode($referralCode)) throw new \RuntimeException('Mã giới thiệu không tồn tại.');
             $id = $this->users()->create($name, $email, $password, $referralCode);
             (new MemberPoint($this->database()))->earnForReferral($id);
-            Session::put('user', ['id'=>$id, 'name'=>$name, 'role'=>'customer']);
-            header('Location: /account');
+            $account = $this->users()->findById($id);
+            $token = $this->users()->createVerificationToken($id);
+            if ($this->sendVerificationEmail($account['email'], $account['name'], $token)) {
+                Session::flash('success', 'Đăng ký thành công. Hãy kiểm tra email để xác thực tài khoản.');
+            } else {
+                Session::flash('failure', 'Tài khoản đã tạo nhưng hệ thống chưa gửi được email xác thực. Hãy kiểm tra cấu hình mail.');
+            }
+            header('Location: /login');
         } catch (Throwable $exception) { $this->view->render('shop/register', ['title' => 'Đăng ký', 'error' => $exception->getMessage(), 'name' => $name, 'email' => $email]); }
+    }
+
+    public function verifyEmail(): void
+    {
+        Session::start();
+        $token = trim((string)($_GET['token'] ?? ''));
+        if ($token !== '' && (new User($this->database()))->verifyEmail($token)) {
+            Session::flash('success', 'Email đã được xác thực. Bạn có thể đăng nhập.');
+        } else {
+            Session::flash('failure', 'Link xác thực không hợp lệ hoặc đã hết hạn.');
+        }
+        header('Location: /login');
+    }
+
+    public function resendVerification(): void
+    {
+        Session::start();
+        try {
+            Csrf::verify($_POST['_csrf'] ?? null);
+            $email = trim((string)($_POST['verification_email'] ?? ''));
+            $account = filter_var($email, FILTER_VALIDATE_EMAIL) ? $this->users()->findByEmail($email) : null;
+            if ($account && empty($account['email_verified_at'])) {
+                $token = $this->users()->createVerificationToken((int)$account['id']);
+                $this->sendVerificationEmail($account['email'], $account['name'], $token);
+            }
+            Session::flash('success', 'Nếu email tồn tại và chưa xác thực, link mới đã được gửi.');
+        } catch (Throwable $exception) {
+            Session::flash('failure', $exception->getMessage());
+        }
+        header('Location: /login');
     }
 
     public function logout(): void
@@ -124,6 +224,32 @@ final class AuthPageController extends Controller
     private function googleConfig(): array
     {
         return (new SystemSetting($this->database()))->googleConfig();
+    }
+
+    private function sendVerificationEmail(string $email, string $name, string $token): bool
+    {
+        $mail = (new SystemSetting($this->database()))->mailConfig();
+        $baseUrl = rtrim((string)(getenv('APP_URL') ?: $this->currentHttpHost()), '/');
+        $link = $baseUrl . '/verify-email?token=' . rawurlencode($token);
+        $subject = 'Xác thực email - Nhà sách Mộc Bản';
+        $message = "Xin chào {$name},\n\nHãy mở liên kết sau để xác thực tài khoản:\n{$link}\n\nLiên kết có hiệu lực trong 24 giờ.";
+        return (new SmtpMailer($mail))->send($email, $subject, $message, EmailTemplate::verification($name, $link));
+    }
+
+    private function sendPasswordResetEmail(string $email, string $name, string $token): bool
+    {
+        $mail = (new SystemSetting($this->database()))->mailConfig();
+        $baseUrl = rtrim((string)(getenv('APP_URL') ?: $this->currentHttpHost()), '/');
+        $link = $baseUrl . '/reset-password?token=' . rawurlencode($token);
+        $subject = 'Đặt lại mật khẩu - Nhà sách Mộc Bản';
+        $message = "Xin chào {$name},\n\nHãy mở liên kết sau để đặt lại mật khẩu:\n{$link}\n\nLiên kết có hiệu lực trong 60 phút và chỉ sử dụng được một lần. Nếu bạn không yêu cầu, hãy bỏ qua email này.";
+        return (new SmtpMailer($mail))->send($email, $subject, $message, EmailTemplate::passwordReset($name, $link));
+    }
+
+    private function currentHttpHost(): string
+    {
+        $host = preg_replace('/[^a-zA-Z0-9.:\-\[\]]/', '', (string)($_SERVER['HTTP_HOST'] ?? 'localhost'));
+        return 'http://' . ($host !== '' ? $host : 'localhost');
     }
 
     private function googleRequest(string $url, array $fields): array

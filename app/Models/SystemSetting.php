@@ -50,6 +50,23 @@ final class SystemSetting
         ];
     }
 
+    public function mailConfig(): array
+    {
+        $get = function (string $key): string {
+            $stored = $this->get($key);
+            return ($stored !== null && $stored !== '') ? $stored : (string)(getenv($key) ?: '');
+        };
+        return [
+            'host' => $get('MAIL_SMTP_HOST'),
+            'port' => (int)($get('MAIL_SMTP_PORT') ?: 587),
+            'username' => $get('MAIL_SMTP_USERNAME'),
+            'password' => $get('MAIL_SMTP_PASSWORD'),
+            'encryption' => strtolower($get('MAIL_SMTP_ENCRYPTION') ?: 'tls'),
+            'from' => $get('MAIL_FROM') ?: 'no-reply@localhost',
+            'from_name' => $get('MAIL_FROM_NAME') ?: 'Nhà sách Mộc Bản',
+        ];
+    }
+
     private function currentHttpHost(): string
     {
         $host = preg_replace('/[^a-zA-Z0-9.:\-\[\]]/', '', (string)($_SERVER['HTTP_HOST'] ?? ''));
