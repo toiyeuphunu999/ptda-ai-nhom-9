@@ -35,6 +35,12 @@ Website bán sách trực tuyến cho đồ án WEB212, triển khai trên PHP/A
 - Người dùng có thể yêu cầu gửi lại email tại trang `/login`.
 - SMTP host, port, username, password, encryption và thông tin người gửi có thể cấu hình tại `/admin/settings`.
 
+### Thông tin nhận hàng mặc định
+
+- Người dùng có thể lưu họ tên, số điện thoại và địa chỉ nhận hàng tại `/account`.
+- Các thông tin đã lưu được tự điền vào form thanh toán và vẫn có thể chỉnh sửa trước khi đặt từng đơn.
+- Checkout yêu cầu email nhận thông báo và lưu email đó cùng đơn hàng.
+
 ### Quên mật khẩu
 
 - Người dùng có thể yêu cầu link đặt lại mật khẩu tại `/forgot-password`.
@@ -53,7 +59,7 @@ Sau đó mở `http://localhost:8000/`.
 
 ## Route chính
 
-`/`, `/books`, `/books/{slug}`, `/categories/{slug}`, `/search`, `/cart`, `/checkout`, `/login`, `/register`, `/account`, `/orders`, `/about`, `/contact` và nhóm `/admin` (bao gồm `/admin/vouchers`).
+`/`, `/books`, `/books/{slug}`, `/categories/{slug}`, `/search`, `/cart`, `/checkout`, `/login`, `/register`, `/account`, `/orders`, `/about`, `/contact`, `/faq`, `/guide`, `/shipping`, `/returns`, `/privacy`, `/terms` và nhóm `/admin` (bao gồm `/admin/vouchers`).
 
 Ảnh bìa mặc định được lưu trong tài nguyên của website. Sách, khách hàng và đơn hàng được quản lý trong database của hệ thống.
 

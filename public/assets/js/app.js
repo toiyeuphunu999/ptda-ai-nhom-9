@@ -47,6 +47,19 @@ window.toggleNavigationMenu = (event, button) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-accordion-trigger]').forEach((button) => {
+    const panelId = button.getAttribute('aria-controls');
+    const panel = panelId ? document.getElementById(panelId) : null;
+    if (!panel) return;
+
+    button.addEventListener('click', () => {
+      const open = button.getAttribute('aria-expanded') === 'true';
+      button.setAttribute('aria-expanded', String(!open));
+      button.closest('.faq-item')?.classList.toggle('is-open', !open);
+      panel.inert = open;
+    });
+  });
+
   const drawer = document.querySelector('[data-drawer]');
   const drawerButton = drawer ? document.querySelector(`[aria-controls="${drawer.id}"]`) : null;
   const scrim = document.querySelector('[data-nav-scrim]');

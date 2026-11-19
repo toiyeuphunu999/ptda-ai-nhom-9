@@ -24,7 +24,7 @@ final class Order
         return $order ?: null;
     }
 
-    public function createFromCart(int $userId, array $items, string $name, string $phone, string $address, ?int $voucherId = null, string $paymentMethod = 'cod'): string
+    public function createFromCart(int $userId, array $items, string $name, string $email, string $phone, string $address, ?int $voucherId = null, string $paymentMethod = 'cod'): string
     {
         if (!in_array($paymentMethod, ['cod', 'bank_transfer'], true)) {
             throw new RuntimeException('Phương thức thanh toán không hợp lệ.');
@@ -65,13 +65,13 @@ final class Order
 
             $orderCode = 'MB' . date('ymdHis') . strtoupper(bin2hex(random_bytes(3)));
             $orderStatement = $pdo->prepare(
-                'INSERT INTO orders (user_id, order_code, status, subtotal, shipping_fee, discount_amount, voucher_code, total, shipping_name, shipping_phone, shipping_address) '
-                . 'VALUES (:user_id, :order_code, :status, :subtotal, :shipping_fee, :discount_amount, :voucher_code, :total, :shipping_name, :shipping_phone, :shipping_address)'
+                'INSERT INTO orders (user_id, order_code, status, subtotal, shipping_fee, discount_amount, voucher_code, total, shipping_name, shipping_email, shipping_phone, shipping_address) '
+                . 'VALUES (:user_id, :order_code, :status, :subtotal, :shipping_fee, :discount_amount, :voucher_code, :total, :shipping_name, :shipping_email, :shipping_phone, :shipping_address)'
             );
             $orderStatement->execute([
                 'user_id' => $userId, 'order_code' => $orderCode, 'status' => 'pending',
                 'subtotal' => $subtotal, 'shipping_fee' => 0, 'discount_amount' => $discount, 'voucher_code' => $voucherCode, 'total' => $total,
-                'shipping_name' => $name, 'shipping_phone' => $phone, 'shipping_address' => $address,
+                'shipping_name' => $name, 'shipping_email' => $email, 'shipping_phone' => $phone, 'shipping_address' => $address,
             ]);
             $orderId = (int)$pdo->lastInsertId();
             $pdo->prepare(

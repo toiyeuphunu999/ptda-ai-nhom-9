@@ -16,6 +16,11 @@
             <?= Csrf::field() ?>
             <label for="account-name">Họ và tên</label>
             <input id="account-name" name="name" type="text" maxlength="120" value="<?= ViewHelper::escape((string)($formName ?? $user['name'] ?? '')) ?>" required>
+            <label for="account-phone">Số điện thoại nhận hàng</label>
+            <input id="account-phone" name="phone" type="tel" maxlength="30" autocomplete="tel" value="<?= ViewHelper::escape((string)($formPhone ?? $user['phone'] ?? '')) ?>" placeholder="0901 234 567">
+            <label for="account-address">Địa chỉ nhận hàng mặc định</label>
+            <textarea id="account-address" name="address" rows="3" maxlength="255" autocomplete="street-address" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"><?= ViewHelper::escape((string)($formAddress ?? $user['address'] ?? '')) ?></textarea>
+            <p class="form-hint">Thông tin này sẽ được tự điền ở bước thanh toán. Bạn vẫn có thể sửa lại cho từng đơn hàng.</p>
         </form>
         <form id="account-logout-form" class="account-logout-form" method="post" action="/logout">
             <?= Csrf::field() ?>

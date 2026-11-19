@@ -4,7 +4,7 @@
 
 1. Tạo database `bookstore_web212`.
 2. Chạy `database/schema.sql`.
-3. Chạy migrations theo thứ tự số: `002_reviews_vouchers.sql`, `003_real_publishers.sql`, `004_payments_customer_tiers_reports.sql`, `005_system_settings.sql`, `006_repair_sales_reports.sql`, `007_repair_customer_tier_utf8.sql`, `008_member_points.sql`, `009_google_login.sql`, `010_email_verification.sql`, `011_password_reset_tokens.sql`.
+3. Chạy migrations theo thứ tự số: `002_reviews_vouchers.sql`, `003_real_publishers.sql`, `004_payments_customer_tiers_reports.sql`, `005_system_settings.sql`, `006_repair_sales_reports.sql`, `007_repair_customer_tier_utf8.sql`, `008_member_points.sql`, `009_google_login.sql`, `010_email_verification.sql`, `011_password_reset_tokens.sql`, `012_user_contact_address.sql`, `013_order_shipping_email.sql`, `014_customer_management.sql`.
 4. Chạy `database/seed.sql` ở local mới.
 5. Không chạy seed lại trên dữ liệu thật khi chưa kiểm tra duplicate và tồn kho.
 
@@ -21,4 +21,5 @@ Các bảng nghiệp vụ gồm tài khoản, hạng khách hàng, danh mục, s
 - Tiền lưu dạng số nguyên VNĐ.
 - Thanh toán online được thiết kế qua bảng `payments`; việc kết nối cổng MoMo/VNPay/ZaloPay vẫn cần service và callback riêng trong ứng dụng.
 - `customer_tiers` phân biệt khách thường/VIP theo tổng chi tiêu và chính sách ưu đãi.
+- Quản trị viên có thể cập nhật thông tin liên hệ, khóa/mở quyền mua và điều chỉnh ví; mọi điều chỉnh ví được lưu tại `wallet_transactions`.
 - Không chạy migration lặp lại; kiểm tra backup và cấu trúc hiện tại trước khi chạy trên production.
