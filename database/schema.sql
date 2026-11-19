@@ -27,6 +27,10 @@ CREATE TABLE IF NOT EXISTS users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
     email VARCHAR(190) NOT NULL UNIQUE,
+    phone VARCHAR(30) NULL,
+    address VARCHAR(255) NULL,
+    wallet_balance INT UNSIGNED NOT NULL DEFAULT 0,
+    purchase_blocked TINYINT(1) NOT NULL DEFAULT 0,
     email_verified_at DATETIME NULL,
     email_verification_token_hash CHAR(64) NULL,
     email_verification_expires_at DATETIME NULL,
@@ -92,6 +96,7 @@ CREATE TABLE IF NOT EXISTS orders (
     voucher_code VARCHAR(50) NULL,
     total INT UNSIGNED NOT NULL DEFAULT 0,
     shipping_name VARCHAR(120) NOT NULL,
+    shipping_email VARCHAR(190) NOT NULL,
     shipping_phone VARCHAR(30) NOT NULL,
     shipping_address VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -211,6 +216,22 @@ CREATE TABLE IF NOT EXISTS member_point_transactions (
     INDEX idx_member_points_user_created (user_id, created_at),
     CONSTRAINT fk_member_points_user FOREIGN KEY (user_id) REFERENCES users(id)
         ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS wallet_transactions (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    amount INT NOT NULL,
+    balance_after INT UNSIGNED NOT NULL,
+    transaction_type ENUM('admin_adjustment', 'order_payment', 'refund') NOT NULL DEFAULT 'admin_adjustment',
+    description VARCHAR(255) NOT NULL,
+    created_by INT UNSIGNED NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_wallet_transactions_user_created (user_id, created_at),
+    CONSTRAINT fk_wallet_transactions_user FOREIGN KEY (user_id) REFERENCES users(id)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_wallet_transactions_creator FOREIGN KEY (created_by) REFERENCES users(id)
+        ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX idx_payments_status ON payments(status);

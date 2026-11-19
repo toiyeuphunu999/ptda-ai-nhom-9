@@ -171,23 +171,122 @@ final class User
         return $id;
     }
 
-    public function updateName(int $id, string $name): void
+    public function updateProfile(int $id, string $name, string $phone = '', string $address = ''): void
     {
         $name = trim($name);
+        $phone = trim($phone);
+        $address = trim($address);
         if ($name === '' || mb_strlen($name) > 120) {
             throw new \RuntimeException('Họ tên không được để trống và tối đa 120 ký tự.');
         }
-        $statement = $this->database->connection()->prepare('UPDATE users SET name = :name WHERE id = :id');
-        $statement->execute(['name' => $name, 'id' => $id]);
+        if (mb_strlen($phone) > 30) throw new \RuntimeException('Số điện thoại tối đa 30 ký tự.');
+        if (mb_strlen($address) > 255) throw new \RuntimeException('Địa chỉ tối đa 255 ký tự.');
+        $statement = $this->database->connection()->prepare('UPDATE users SET name = :name, phone = :phone, address = :address WHERE id = :id');
+        $statement->execute(['name' => $name, 'phone' => $phone !== '' ? $phone : null, 'address' => $address !== '' ? $address : null, 'id' => $id]);
     }
 
     public function allForAdmin(): array
     {
         return $this->database->connection()->query(
-            'SELECT users.id, users.name, users.email, users.role, customer_tiers.name AS customer_tier, users.created_at
+            "SELECT users.id, users.name, users.email, users.phone, users.address, users.role,
+                    users.wallet_balance, users.purchase_blocked, customer_tiers.name AS customer_tier,
+                    users.created_at, COUNT(DISTINCT orders.id) AS order_count,
+                    COALESCE(SUM(CASE WHEN orders.status IN ('confirmed', 'shipping', 'completed') THEN orders.total ELSE 0 END), 0) AS total_spent
              FROM users INNER JOIN customer_tiers ON customer_tiers.id = users.customer_tier_id
-             ORDER BY users.created_at DESC'
+             LEFT JOIN orders ON orders.user_id = users.id
+             GROUP BY users.id, users.name, users.email, users.phone, users.address, users.role,
+                      users.wallet_balance, users.purchase_blocked, customer_tiers.name, users.created_at
+             ORDER BY users.created_at DESC"
         )->fetchAll();
+    }
+
+    public function adminDetails(int $id): ?array
+    {
+        $statement = $this->database->connection()->prepare(
+            "SELECT users.*, customer_tiers.name AS customer_tier,
+                    COUNT(DISTINCT orders.id) AS order_count,
+                    COALESCE(SUM(CASE WHEN orders.status IN ('confirmed', 'shipping', 'completed') THEN orders.total ELSE 0 END), 0) AS total_spent
+             FROM users INNER JOIN customer_tiers ON customer_tiers.id = users.customer_tier_id
+             LEFT JOIN orders ON orders.user_id = users.id
+             WHERE users.id = :id
+             GROUP BY users.id, customer_tiers.name
+             LIMIT 1"
+        );
+        $statement->execute(['id' => $id]);
+        $user = $statement->fetch();
+        return $user ?: null;
+    }
+
+    public function updateByAdmin(int $id, string $name, string $email, string $phone = '', string $address = ''): void
+    {
+        $name = trim($name); $email = trim($email); $phone = trim($phone); $address = trim($address);
+        if ($name === '' || mb_strlen($name) > 120) throw new \RuntimeException('Họ tên không được để trống và tối đa 120 ký tự.');
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190) throw new \RuntimeException('Email không hợp lệ.');
+        if (mb_strlen($phone) > 30) throw new \RuntimeException('Số điện thoại tối đa 30 ký tự.');
+        if (mb_strlen($address) > 255) throw new \RuntimeException('Địa chỉ tối đa 255 ký tự.');
+        $statement = $this->database->connection()->prepare(
+            'UPDATE users SET name = :name, email = :email, phone = :phone, address = :address WHERE id = :id'
+        );
+        try {
+            $statement->execute(['name'=>$name, 'email'=>$email, 'phone'=>$phone !== '' ? $phone : null, 'address'=>$address !== '' ? $address : null, 'id'=>$id]);
+        } catch (\PDOException $exception) {
+            if ((int)$exception->errorInfo[1] === 1062) throw new \RuntimeException('Email này đã được sử dụng bởi tài khoản khác.');
+            throw $exception;
+        }
+    }
+
+    public function setPurchaseBlocked(int $id, bool $blocked): void
+    {
+        $account = $this->findById($id);
+        if (!$account) throw new \RuntimeException('Không tìm thấy tài khoản.');
+        if (($account['role'] ?? '') !== 'customer') throw new \RuntimeException('Chỉ có thể khóa quyền mua của tài khoản khách hàng.');
+        $statement = $this->database->connection()->prepare('UPDATE users SET purchase_blocked = :blocked WHERE id = :id');
+        $statement->execute(['blocked' => $blocked ? 1 : 0, 'id' => $id]);
+    }
+
+    public function walletHistory(int $id): array
+    {
+        $statement = $this->database->connection()->prepare(
+            'SELECT wt.amount, wt.balance_after, wt.description, wt.created_at, creator.name AS created_by_name
+             FROM wallet_transactions wt LEFT JOIN users creator ON creator.id = wt.created_by
+             WHERE wt.user_id = :id ORDER BY wt.created_at DESC, wt.id DESC LIMIT 30'
+        );
+        $statement->execute(['id' => $id]);
+        return $statement->fetchAll();
+    }
+
+    public function adjustWallet(int $id, int $amount, string $description, ?int $adminId = null): void
+    {
+        if ($amount === 0) throw new \RuntimeException('Số tiền điều chỉnh phải khác 0.');
+        $description = trim($description);
+        if ($description === '' || mb_strlen($description) > 255) throw new \RuntimeException('Vui lòng nhập lý do, tối đa 255 ký tự.');
+        $pdo = $this->database->connection();
+        $pdo->beginTransaction();
+        try {
+            $statement = $pdo->prepare('SELECT wallet_balance FROM users WHERE id = :id FOR UPDATE');
+            $statement->execute(['id' => $id]);
+            $balance = $statement->fetchColumn();
+            if ($balance === false) throw new \RuntimeException('Không tìm thấy tài khoản.');
+            $newBalance = (int)$balance + $amount;
+            if ($newBalance < 0) throw new \RuntimeException('Không thể trừ vượt quá số dư ví hiện tại.');
+            $pdo->prepare('UPDATE users SET wallet_balance = :balance WHERE id = :id')->execute(['balance'=>$newBalance, 'id'=>$id]);
+            $pdo->prepare(
+                "INSERT INTO wallet_transactions (user_id, amount, balance_after, transaction_type, description, created_by)
+                 VALUES (:user_id, :amount, :balance_after, 'admin_adjustment', :description, :created_by)"
+            )->execute(['user_id'=>$id, 'amount'=>$amount, 'balance_after'=>$newBalance, 'description'=>$description, 'created_by'=>$adminId]);
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $exception;
+        }
+    }
+
+    public function canPurchase(int $id): bool
+    {
+        $statement = $this->database->connection()->prepare('SELECT role, purchase_blocked FROM users WHERE id = :id LIMIT 1');
+        $statement->execute(['id' => $id]);
+        $user = $statement->fetch();
+        return is_array($user) && (int)$user['purchase_blocked'] === 0;
     }
 
     public function countAll(): int
