@@ -17,4 +17,8 @@ return [
         'client_secret' => getenv('GOOGLE_CLIENT_SECRET') ?: '',
         'redirect_uri' => getenv('GOOGLE_REDIRECT_URI') ?: ((getenv('APP_URL') ?: 'http://localhost') . '/auth/google/callback'),
     ],
+    'mail' => [
+        'from' => getenv('MAIL_FROM') ?: 'no-reply@localhost',
+        'from_name' => getenv('MAIL_FROM_NAME') ?: 'Nhà sách Mộc Bản',
+    ],
 ];

@@ -27,6 +27,20 @@ Website bán sách trực tuyến cho đồ án WEB212, triển khai trên PHP/A
 4. Khai báo `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` và `GOOGLE_REDIRECT_URI` trong môi trường chạy PHP.
 5. Mở `/login` và chọn **Tiếp tục với Google**.
 
+### Xác thực email
+
+- Tài khoản đăng ký bằng email sẽ nhận link xác thực có hiệu lực 24 giờ.
+- Người dùng chưa xác thực sẽ không thể đăng nhập bằng mật khẩu.
+- Cấu hình SMTP host, port, username, password và encryption tại `/admin/settings` để gửi email xác thực.
+- Người dùng có thể yêu cầu gửi lại email tại trang `/login`.
+- SMTP host, port, username, password, encryption và thông tin người gửi có thể cấu hình tại `/admin/settings`.
+
+### Quên mật khẩu
+
+- Người dùng có thể yêu cầu link đặt lại mật khẩu tại `/forgot-password`.
+- Link reset có hiệu lực 60 phút và chỉ sử dụng được một lần.
+- Token reset chỉ lưu dạng hash trong bảng `password_reset_tokens`.
+
 ## Chạy local
 
 Đặt DocumentRoot của Apache vào thư mục `public/`. Khi dùng PHP built-in server:
