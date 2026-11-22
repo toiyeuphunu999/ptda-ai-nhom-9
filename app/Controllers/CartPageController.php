@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Models\UserAddress;
 use App\Models\Voucher;
 use App\Services\PayOSService;
 use RuntimeException;
@@ -39,8 +40,12 @@ final class CartPageController extends Controller
     {
         Session::start(); $user = Session::get('user'); if (!is_array($user)) { header('Location: /login'); return; }
         $userModel = new User($this->database()); $account = $userModel->findById((int)$user['id']) ?: $user;
-        if (!$userModel->canPurchase((int)$user['id'])) { http_response_code(403); $this->view->render('shop/checkout', ['title'=>'Thanh toán','error'=>'Tài khoản của bạn hiện đang bị tạm khóa quyền mua hàng. Vui lòng liên hệ hỗ trợ.','items'=>$this->cartItems(),'checkoutUser'=>$account]); return; }
-        $this->view->render('shop/checkout', ['title'=>'Thanh toán','items'=>$this->cartItems(),'paymentMethod'=>$_GET['payment_method'] ?? 'cod','checkoutUser'=>$account]);
+        $addresses = (new UserAddress($this->database()))->allForUser((int)$user['id']);
+        $selectedId = (int)($_GET['address_id'] ?? 0) ?: (int)($addresses[0]['id'] ?? 0);
+        foreach ($addresses as $savedAddress) if ((int)$savedAddress['id'] === $selectedId) { $account['name'] = $savedAddress['recipient_name']; $account['phone'] = $savedAddress['phone']; $account['address'] = $savedAddress['address']; break; }
+        $data = ['title'=>'Thanh toán','items'=>$this->cartItems(),'paymentMethod'=>$_GET['payment_method'] ?? 'cod','checkoutUser'=>$account,'savedAddresses'=>$addresses,'selectedAddressId'=>$selectedId];
+        if (!$userModel->canPurchase((int)$user['id'])) { http_response_code(403); $data['error']='Tài khoản của bạn hiện đang bị tạm khóa quyền mua hàng. Vui lòng liên hệ hỗ trợ.'; }
+        $this->view->render('shop/checkout', $data);
     }
 
     public function placeOrder(): void
@@ -75,7 +80,7 @@ final class CartPageController extends Controller
             }
             Session::put('cart', []); Session::flash('success', 'Đặt hàng thành công. Mã đơn: '.$code); header('Location: /orders');
         } catch (Throwable $exception) {
-            http_response_code(422); $this->view->render('shop/checkout', ['title'=>'Thanh toán','error'=>$exception->getMessage(),'items'=>$this->cartItems(),'paymentMethod'=>$_POST['payment_method'] ?? 'cod','voucherCode'=>(string)($_POST['voucher_code'] ?? ''),'checkoutUser'=>['name'=>(string)($_POST['shipping_name'] ?? ''),'email'=>(string)($_POST['shipping_email'] ?? ''),'phone'=>(string)($_POST['shipping_phone'] ?? ''),'address'=>(string)($_POST['shipping_address'] ?? '')]]);
+            http_response_code(422); $this->view->render('shop/checkout', ['title'=>'Thanh toán','error'=>$exception->getMessage(),'items'=>$this->cartItems(),'paymentMethod'=>$_POST['payment_method'] ?? 'cod','voucherCode'=>(string)($_POST['voucher_code'] ?? ''),'checkoutUser'=>['name'=>(string)($_POST['shipping_name'] ?? ''),'email'=>(string)($_POST['shipping_email'] ?? ''),'phone'=>(string)($_POST['shipping_phone'] ?? ''),'address'=>(string)($_POST['shipping_address'] ?? '')],'savedAddresses'=>(new UserAddress($this->database()))->allForUser((int)$user['id']),'selectedAddressId'=>(int)($_POST['saved_address_id'] ?? 0)]);
         }
     }
 

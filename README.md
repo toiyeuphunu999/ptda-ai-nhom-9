@@ -38,6 +38,7 @@ Website bán sách trực tuyến cho đồ án WEB212, triển khai trên PHP/A
 ### Thông tin nhận hàng mặc định
 
 - Người dùng có thể lưu họ tên, số điện thoại và địa chỉ nhận hàng tại `/account`.
+- Người dùng có thể lưu nhiều địa chỉ nhận hàng, chọn địa chỉ mặc định và chọn nhanh địa chỉ ở checkout.
 - Các thông tin đã lưu được tự điền vào form thanh toán và vẫn có thể chỉnh sửa trước khi đặt từng đơn.
 - Checkout yêu cầu email nhận thông báo và lưu email đó cùng đơn hàng.
 
