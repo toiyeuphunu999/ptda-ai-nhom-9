@@ -8,10 +8,42 @@ use Throwable;
 
 final class AdminOrderController extends AdminController
 {
-    public function orders(): void { $this->authorize(); $this->view->render('admin/orders',['title'=>'Đơn hàng','orders'=>(new Order($this->database()))->allForAdmin()],'admin'); }
-    public function payments(): void { $this->authorize(); $method=trim((string)($_GET['method']??''))?:null; $status=trim((string)($_GET['status']??''))?:null; $this->view->render('admin/payments',['title'=>'Quản lý thanh toán','payments'=>(new Order($this->database()))->paymentsForAdmin($method,$status),'method'=>$method,'status'=>$status],'admin'); }
+    public function orders(): void
+    {
+        $this->authorize();
+        $data = array('title' => 'Đơn hàng');
+        $data['orders'] = (new Order($this->database()))->allForAdmin();
+        $this->view->render('admin/orders', $data, 'admin');
+    }
+
+    public function payments(): void
+    {
+        $this->authorize();
+        $method = trim((string)($_GET['method'] ?? ''));
+        $status = trim((string)($_GET['status'] ?? ''));
+        $orderModel = new Order($this->database());
+        $data = array('title' => 'Quản lý thanh toán');
+        $data['payments'] = $orderModel->paymentsForAdmin($method ?: null, $status ?: null);
+        $data['method'] = $method ?: null;
+        $data['status'] = $status ?: null;
+        $this->view->render('admin/payments', $data, 'admin');
+    }
     public function orderStatus(string $id): void
     {
-        $this->authorize(); try { Csrf::verify($_POST['_csrf']??null); $user=Session::get('user'); (new Order($this->database()))->updateStatus((int)$id,(string)($_POST['status']??''),is_array($user)?(int)$user['id']:null); Session::flash('success','Đã cập nhật trạng thái đơn hàng.'); header('Location: /admin/orders'); } catch(Throwable $e) { http_response_code(422); $this->view->render('admin/orders',['title'=>'Đơn hàng','error'=>$e->getMessage(),'orders'=>(new Order($this->database()))->allForAdmin()],'admin'); }
+        $this->authorize();
+        try {
+            Csrf::verify($_POST['_csrf'] ?? null);
+            $user = Session::get('user');
+            $adminId = is_array($user) ? (int)$user['id'] : null;
+            (new Order($this->database()))->updateStatus((int)$id, (string)($_POST['status'] ?? ''), $adminId);
+            Session::flash('success', 'Đã cập nhật trạng thái đơn hàng.');
+            header('Location: /admin/orders');
+        } catch (Throwable $exception) {
+            http_response_code(422);
+            $data = array('title' => 'Đơn hàng');
+            $data['error'] = $exception->getMessage();
+            $data['orders'] = (new Order($this->database()))->allForAdmin();
+            $this->view->render('admin/orders', $data, 'admin');
+        }
     }
 }

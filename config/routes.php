@@ -18,19 +18,104 @@ use App\Controllers\WishlistController;
 use App\Core\Router;
 use App\Core\View;
 
-return static function (Router $router, View $view): void {
-    $home = new HomeController($view); $books = new BookController($view); $pages = new PageController($view); $auth = new AuthPageController($view); $cart = new CartPageController($view); $account = new AccountPageController($view); $wishlist = new WishlistController($view);
-    $adminDashboard = new AdminDashboardController($view); $adminCatalog = new AdminCatalogController($view); $adminOrders = new AdminOrderController($view); $adminCustomers = new AdminCustomerController($view); $adminVouchers = new AdminVoucherController($view); $adminSettings = new AdminSettingsController($view);
-    $router->get('/', [$home, 'index']); $router->get('/books', [$books, 'index']); $router->get('/books/{slug}', [$books, 'detail']); $router->post('/books/{id}/reviews', [$books, 'reviewSubmit']); $router->get('/categories/{slug}', [$books, 'category']); $router->get('/search', [$books, 'search']);
-    $router->get('/cart', [$cart, 'cart']); $router->get('/checkout', [$cart, 'checkout']); $router->post('/checkout', [$cart, 'placeOrder']); $router->post('/cart/add/{id}', [$cart, 'add']); $router->post('/cart/update', [$cart, 'update']); $router->post('/cart/remove/{id}', [$cart, 'remove']);
-    $router->get('/wishlist', [$wishlist, 'index']); $router->post('/wishlist/add/{id}', [$wishlist, 'add']); $router->post('/wishlist/{id}/remove', [$wishlist, 'remove']);
-    $router->get('/payment/payos/return', [$cart, 'payosReturn']); $router->get('/payment/payos/cancel', [$cart, 'payosCancel']); $router->post('/payment/payos/webhook', [$cart, 'payosWebhook']);
-    $router->get('/login', [$auth, 'login']); $router->post('/login', [$auth, 'loginSubmit']); $router->get('/forgot-password', [$auth, 'forgotPassword']); $router->post('/forgot-password', [$auth, 'forgotPasswordSubmit']); $router->get('/reset-password', [$auth, 'resetPassword']); $router->post('/reset-password', [$auth, 'resetPasswordSubmit']); $router->post('/verify-email/resend', [$auth, 'resendVerification']); $router->get('/verify-email', [$auth, 'verifyEmail']); $router->get('/auth/google', [$auth, 'googleRedirect']); $router->get('/auth/google/callback', [$auth, 'googleCallback']); $router->get('/register', [$auth, 'register']); $router->post('/register', [$auth, 'registerSubmit']); $router->post('/logout', [$auth, 'logout']);
-    $router->get('/account', [$account, 'account']); $router->post('/account', [$account, 'updateProfile']); $router->post('/account/addresses', [$account, 'addressStore']); $router->post('/account/addresses/{id}/update', [$account, 'addressUpdate']); $router->post('/account/addresses/{id}/delete', [$account, 'addressDelete']); $router->post('/account/addresses/{id}/default', [$account, 'addressDefault']); $router->get('/orders', [$cart, 'orderHistory']); $router->get('/about', [$pages, 'about']); $router->get('/contact', [$pages, 'contact']); $router->get('/faq', [$pages, 'faq']); $router->get('/terms', [$pages, 'terms']); $router->get('/privacy', [$pages, 'privacy']); $router->get('/shipping', [$pages, 'shipping']); $router->get('/returns', [$pages, 'returns']); $router->get('/guide', [$pages, 'guide']);
-    $router->get('/admin', [$adminDashboard, 'dashboard']); $router->get('/admin/reports', [$adminDashboard, 'reports']);
-    $router->get('/admin/books', [$adminCatalog, 'books']); $router->get('/admin/books/create', [$adminCatalog, 'bookCreate']); $router->get('/admin/books/{id}/edit', [$adminCatalog, 'bookEdit']); $router->post('/admin/books', [$adminCatalog, 'bookStore']); $router->post('/admin/books/{id}/update', [$adminCatalog, 'bookUpdate']); $router->post('/admin/books/{id}/delete', [$adminCatalog, 'bookDelete']);
-    $router->get('/admin/categories', [$adminCatalog, 'categories']); $router->post('/admin/categories', [$adminCatalog, 'categoryStore']); $router->post('/admin/categories/{id}/update', [$adminCatalog, 'categoryUpdate']); $router->post('/admin/categories/{id}/delete', [$adminCatalog, 'categoryDelete']);
-    $router->get('/admin/orders', [$adminOrders, 'orders']); $router->get('/admin/payments', [$adminOrders, 'payments']); $router->post('/admin/orders/{id}/status', [$adminOrders, 'orderStatus']);
-    $router->get('/admin/customers', [$adminCustomers, 'customers']); $router->get('/admin/customers/{id}', [$adminCustomers, 'detail']); $router->post('/admin/customers/{id}/profile', [$adminCustomers, 'updateProfile']); $router->post('/admin/customers/{id}/purchase-status', [$adminCustomers, 'updatePurchaseStatus']); $router->post('/admin/customers/{id}/wallet', [$adminCustomers, 'adjustWallet']); $router->get('/admin/vouchers', [$adminVouchers, 'vouchers']); $router->post('/admin/vouchers', [$adminVouchers, 'store']); $router->post('/admin/vouchers/{id}/delete', [$adminVouchers, 'delete']);
-    $router->get('/admin/settings', [$adminSettings, 'settings']); $router->post('/admin/settings', [$adminSettings, 'save']);
+/* Chỉ khai báo đường dẫn và Controller. Không viết SQL trong file này. */
+return function (Router $router, View $view): void {
+    $homeController = new HomeController($view);
+    $bookController = new BookController($view);
+    $pageController = new PageController($view);
+    $authController = new AuthPageController($view);
+    $cartController = new CartPageController($view);
+    $accountController = new AccountPageController($view);
+    $wishlistController = new WishlistController($view);
+    $adminDashboardController = new AdminDashboardController($view);
+    $adminCatalogController = new AdminCatalogController($view);
+    $adminOrderController = new AdminOrderController($view);
+    $adminCustomerController = new AdminCustomerController($view);
+    $adminVoucherController = new AdminVoucherController($view);
+    $adminSettingsController = new AdminSettingsController($view);
+
+    // Cửa hàng
+    $router->get('/', [$homeController, 'index']);
+    $router->get('/books', [$bookController, 'index']);
+    $router->get('/books/{slug}', [$bookController, 'detail']);
+    $router->post('/books/{id}/reviews', [$bookController, 'reviewSubmit']);
+    $router->get('/categories/{slug}', [$bookController, 'category']);
+    $router->get('/search', [$bookController, 'search']);
+
+    // Giỏ hàng, thanh toán và đơn hàng
+    $router->get('/cart', [$cartController, 'cart']);
+    $router->post('/cart/add/{id}', [$cartController, 'add']);
+    $router->post('/cart/update', [$cartController, 'update']);
+    $router->post('/cart/remove/{id}', [$cartController, 'remove']);
+    $router->get('/checkout', [$cartController, 'checkout']);
+    $router->post('/checkout', [$cartController, 'placeOrder']);
+    $router->get('/orders', [$cartController, 'orderHistory']);
+
+    // Wishlist
+    $router->get('/wishlist', [$wishlistController, 'index']);
+    $router->post('/wishlist/add/{id}', [$wishlistController, 'add']);
+    $router->post('/wishlist/{id}/remove', [$wishlistController, 'remove']);
+
+    // PayOS
+    $router->get('/payment/payos/return', [$cartController, 'payosReturn']);
+    $router->get('/payment/payos/cancel', [$cartController, 'payosCancel']);
+    $router->post('/payment/payos/webhook', [$cartController, 'payosWebhook']);
+
+    // Đăng nhập và tài khoản
+    $router->get('/login', [$authController, 'login']);
+    $router->post('/login', [$authController, 'loginSubmit']);
+    $router->get('/register', [$authController, 'register']);
+    $router->post('/register', [$authController, 'registerSubmit']);
+    $router->post('/logout', [$authController, 'logout']);
+    $router->get('/forgot-password', [$authController, 'forgotPassword']);
+    $router->post('/forgot-password', [$authController, 'forgotPasswordSubmit']);
+    $router->get('/reset-password', [$authController, 'resetPassword']);
+    $router->post('/reset-password', [$authController, 'resetPasswordSubmit']);
+    $router->get('/verify-email', [$authController, 'verifyEmail']);
+    $router->post('/verify-email/resend', [$authController, 'resendVerification']);
+    $router->get('/auth/google', [$authController, 'googleRedirect']);
+    $router->get('/auth/google/callback', [$authController, 'googleCallback']);
+    $router->get('/account', [$accountController, 'account']);
+    $router->post('/account', [$accountController, 'updateProfile']);
+    $router->post('/account/addresses', [$accountController, 'addressStore']);
+    $router->post('/account/addresses/{id}/update', [$accountController, 'addressUpdate']);
+    $router->post('/account/addresses/{id}/delete', [$accountController, 'addressDelete']);
+    $router->post('/account/addresses/{id}/default', [$accountController, 'addressDefault']);
+
+    // Trang thông tin
+    $router->get('/about', [$pageController, 'about']);
+    $router->get('/contact', [$pageController, 'contact']);
+    $router->get('/faq', [$pageController, 'faq']);
+    $router->get('/terms', [$pageController, 'terms']);
+    $router->get('/privacy', [$pageController, 'privacy']);
+    $router->get('/shipping', [$pageController, 'shipping']);
+    $router->get('/returns', [$pageController, 'returns']);
+    $router->get('/guide', [$pageController, 'guide']);
+
+    // Quản trị
+    $router->get('/admin', [$adminDashboardController, 'dashboard']);
+    $router->get('/admin/reports', [$adminDashboardController, 'reports']);
+    $router->get('/admin/books', [$adminCatalogController, 'books']);
+    $router->get('/admin/books/create', [$adminCatalogController, 'bookCreate']);
+    $router->get('/admin/books/{id}/edit', [$adminCatalogController, 'bookEdit']);
+    $router->post('/admin/books', [$adminCatalogController, 'bookStore']);
+    $router->post('/admin/books/{id}/update', [$adminCatalogController, 'bookUpdate']);
+    $router->post('/admin/books/{id}/delete', [$adminCatalogController, 'bookDelete']);
+    $router->get('/admin/categories', [$adminCatalogController, 'categories']);
+    $router->post('/admin/categories', [$adminCatalogController, 'categoryStore']);
+    $router->post('/admin/categories/{id}/update', [$adminCatalogController, 'categoryUpdate']);
+    $router->post('/admin/categories/{id}/delete', [$adminCatalogController, 'categoryDelete']);
+    $router->get('/admin/orders', [$adminOrderController, 'orders']);
+    $router->get('/admin/payments', [$adminOrderController, 'payments']);
+    $router->post('/admin/orders/{id}/status', [$adminOrderController, 'orderStatus']);
+    $router->get('/admin/customers', [$adminCustomerController, 'customers']);
+    $router->get('/admin/customers/{id}', [$adminCustomerController, 'detail']);
+    $router->post('/admin/customers/{id}/profile', [$adminCustomerController, 'updateProfile']);
+    $router->post('/admin/customers/{id}/purchase-status', [$adminCustomerController, 'updatePurchaseStatus']);
+    $router->post('/admin/customers/{id}/wallet', [$adminCustomerController, 'adjustWallet']);
+    $router->get('/admin/vouchers', [$adminVoucherController, 'vouchers']);
+    $router->post('/admin/vouchers', [$adminVoucherController, 'store']);
+    $router->post('/admin/vouchers/{id}/delete', [$adminVoucherController, 'delete']);
+    $router->get('/admin/settings', [$adminSettingsController, 'settings']);
+    $router->post('/admin/settings', [$adminSettingsController, 'save']);
 };

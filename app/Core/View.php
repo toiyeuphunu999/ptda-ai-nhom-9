@@ -20,7 +20,11 @@ final class View
         extract($data, EXTR_SKIP);
         Session::start();
         $currentUser = Session::get('user');
-        $cartCount = array_sum(array_map('intval', (array)Session::get('cart', [])));
+        $cart = (array)Session::get('cart', array());
+        $cartCount = 0;
+        foreach ($cart as $quantity) {
+            $cartCount += (int)$quantity;
+        }
         $successMessage = Session::pullFlash('success');
         $failureMessage = Session::pullFlash('failure');
         ob_start();

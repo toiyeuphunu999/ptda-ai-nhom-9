@@ -32,8 +32,13 @@ final class Router
 
             $regex = preg_replace('/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/', '(?P<$1>[a-zA-Z0-9-]+)', $pattern);
             if (preg_match('#^' . $regex . '$#', $path, $matches) === 1) {
-                $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
-                $handler(...array_values($params));
+                $params = array();
+                foreach ($matches as $key => $value) {
+                    if (is_string($key)) {
+                        $params[] = $value;
+                    }
+                }
+                call_user_func_array($handler, $params);
                 return;
             }
         }

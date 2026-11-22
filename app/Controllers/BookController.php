@@ -5,79 +5,199 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
-use App\Models\Book;
-use App\Models\Category;
-use App\Models\Review;
-use App\Models\MemberPoint;
 use App\Core\Csrf;
 use App\Core\Session;
+use App\Models\Book;
+use App\Models\Category;
+use App\Models\MemberPoint;
+use App\Models\Review;
 use Throwable;
 
-final class BookController extends Controller
+class BookController extends Controller
 {
-    private function bookModel(): Book { return new Book($this->database()); }
-    private function categoryModel(): Category { return new Category($this->database()); }
+    private function getBookModel(): Book
+    {
+        return new Book($this->database());
+    }
+
+    private function getCategoryModel(): Category
+    {
+        return new Category($this->database());
+    }
 
     public function index(): void
     {
         $category = trim((string)($_GET['category'] ?? ''));
         $author = trim((string)($_GET['author'] ?? ''));
-        $requestedSort = (string)($_GET['sort'] ?? 'newest');
-        $sort = in_array($requestedSort, ['newest', 'price_asc', 'price_desc'], true)
-            ? $requestedSort : 'newest';
-        $minPrice = filter_var($_GET['min_price'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
-        $maxPrice = filter_var($_GET['max_price'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
-        if ($minPrice !== false && $maxPrice !== false && $minPrice !== null && $maxPrice !== null && $minPrice > $maxPrice) {
-            [$minPrice, $maxPrice] = [$maxPrice, $minPrice];
+        $sort = (string)($_GET['sort'] ?? 'newest');
+
+        if ($sort !== 'price_asc' && $sort !== 'price_desc') {
+            $sort = 'newest';
         }
-        $filters = compact('category', 'author', 'sort');
-        $filters['min_price'] = $minPrice === false ? null : $minPrice;
-        $filters['max_price'] = $maxPrice === false ? null : $maxPrice;
-        $this->view->render('shop/books', [
-            'title' => 'Tất cả sách',
-            'books' => $this->bookModel()->filterPublished($filters),
-            'categories' => $this->categoryModel()->all(),
-            'authors' => $this->bookModel()->publishedAuthors(),
-            'filters' => $filters,
-        ]);
+
+        $minPrice = $this->getPrice($_GET['min_price'] ?? null);
+        $maxPrice = $this->getPrice($_GET['max_price'] ?? null);
+
+        if ($minPrice !== null && $maxPrice !== null && $minPrice > $maxPrice) {
+            $oldMinPrice = $minPrice;
+            $minPrice = $maxPrice;
+            $maxPrice = $oldMinPrice;
+        }
+
+        $filters = array();
+        $filters['category'] = $category;
+        $filters['author'] = $author;
+        $filters['sort'] = $sort;
+        $filters['min_price'] = $minPrice;
+        $filters['max_price'] = $maxPrice;
+
+        $bookModel = $this->getBookModel();
+        $data = array();
+        $data['title'] = 'Tất cả sách';
+        $data['books'] = $bookModel->filterPublished($filters);
+        $data['categories'] = $this->getCategoryModel()->all();
+        $data['authors'] = $bookModel->publishedAuthors();
+        $data['filters'] = $filters;
+        $this->view->render('shop/books', $data);
     }
-    public function detail(string $slug): void {
-        $book = $this->bookModel()->findBySlug($slug);
-        if (!$book) { http_response_code(404); $this->view->render('errors/error', ['title'=>'Không tìm thấy sách','errorCode'=>'404','errorTitle'=>'Không tìm thấy sách','errorMessage'=>'Tựa sách này không tồn tại hoặc đã được gỡ khỏi cửa hàng.','errorLabel'=>'Bạn có thể quay lại danh sách để tiếp tục tìm một cuốn sách khác.','primaryUrl'=>'/books','primaryLabel'=>'Xem danh sách sách']); return; }
+
+    public function detail(string $slug): void
+    {
+        $bookModel = $this->getBookModel();
+        $book = $bookModel->findBySlug($slug);
+
+        if (!$book) {
+            $this->showNotFoundBook();
+            return;
+        }
+
         Session::start();
-        $database = $this->database();
-        $reviewModel = new Review($database);
+        $reviewModel = new Review($this->database());
         $user = Session::get('user');
-        $canReview = is_array($user) && $reviewModel->canReview((int)$user['id'], (int)$book['id']) && !$reviewModel->hasReview((int)$user['id'], (int)$book['id']);
-        $this->view->render('shop/book_detail', ['title'=>$book['title'],'book'=>$book,'reviews'=>$reviewModel->forBook((int)$book['id']),'reviewSummary'=>$reviewModel->summary((int)$book['id']),'canReview'=>$canReview,'relatedBooks'=>(new Book($database))->relatedPublished((int)$book['category_id'], (int)$book['id'])]);
+        $canReview = false;
+
+        if (is_array($user)) {
+            $userId = (int)$user['id'];
+            $bookId = (int)$book['id'];
+            $canReview = $reviewModel->canReview($userId, $bookId);
+            if ($reviewModel->hasReview($userId, $bookId)) {
+                $canReview = false;
+            }
+        }
+
+        $data = array();
+        $data['title'] = $book['title'];
+        $data['book'] = $book;
+        $data['reviews'] = $reviewModel->forBook((int)$book['id']);
+        $data['reviewSummary'] = $reviewModel->summary((int)$book['id']);
+        $data['canReview'] = $canReview;
+        $data['relatedBooks'] = $bookModel->relatedPublished((int)$book['category_id'], (int)$book['id']);
+        $this->view->render('shop/book_detail', $data);
     }
-    public function reviewSubmit(string $id): void {
+
+    public function reviewSubmit(string $id): void
+    {
         Session::start();
         $user = Session::get('user');
-        if (!is_array($user)) { header('Location: /login'); return; }
+
+        if (!is_array($user)) {
+            header('Location: /login');
+            return;
+        }
+
+        $bookModel = $this->getBookModel();
+        $book = $bookModel->findById((int)$id);
+
         try {
             Csrf::verify($_POST['_csrf'] ?? null);
-            $book = $this->bookModel()->findById((int)$id);
             $reviewModel = new Review($this->database());
-            if (!$book || $book['status'] !== 'published' || !$reviewModel->canReview((int)$user['id'], (int)$id)) throw new \RuntimeException('Chỉ khách hàng đã mua sách mới có thể đánh giá.');
-            if ($reviewModel->hasReview((int)$user['id'], (int)$id)) throw new \RuntimeException('Bạn đã đánh giá sách này rồi.');
-            $reviewId = $reviewModel->save((int)$user['id'], (int)$id, (int)($_POST['rating'] ?? 0), (string)($_POST['comment'] ?? ''));
-            (new MemberPoint($this->database()))->earnForReview((int)$user['id'], $reviewId);
+            $userId = (int)$user['id'];
+
+            if (!$book || $book['status'] !== 'published') {
+                throw new \RuntimeException('Sách không tồn tại hoặc chưa được bán.');
+            }
+            if (!$reviewModel->canReview($userId, (int)$id)) {
+                throw new \RuntimeException('Chỉ khách hàng đã mua sách mới có thể đánh giá.');
+            }
+            if ($reviewModel->hasReview($userId, (int)$id)) {
+                throw new \RuntimeException('Bạn đã đánh giá sách này rồi.');
+            }
+
+            $reviewId = $reviewModel->save(
+                $userId,
+                (int)$id,
+                (int)($_POST['rating'] ?? 0),
+                (string)($_POST['comment'] ?? '')
+            );
+            $pointModel = new MemberPoint($this->database());
+            $pointModel->earnForReview($userId, $reviewId);
             header('Location: /books/' . rawurlencode((string)$book['slug']) . '#reviews');
         } catch (Throwable $exception) {
             http_response_code(422);
-            $book = $this->bookModel()->findById((int)$id);
-            $this->view->render('shop/book_detail', ['title'=>$book['title'] ?? 'Đánh giá','book'=>$book,'reviews'=>[],'reviewSummary'=>['average'=>0,'total'=>0],'canReview'=>true,'error'=>$exception->getMessage()]);
+            $data = array();
+            $data['title'] = $book['title'] ?? 'Đánh giá';
+            $data['book'] = $book;
+            $data['reviews'] = array();
+            $data['reviewSummary'] = array('average' => 0, 'total' => 0);
+            $data['canReview'] = true;
+            $data['error'] = $exception->getMessage();
+            $this->view->render('shop/book_detail', $data);
         }
     }
-    public function category(string $slug): void {
-        $books = $this->bookModel()->byCategory($slug);
-        $category = $this->categoryModel()->findBySlug($slug);
-        $this->view->render('shop/category', ['title'=>$category['name'] ?? 'Danh mục','books'=>$books,'category'=>$category ?: null]);
+
+    public function category(string $slug): void
+    {
+        $categoryModel = $this->getCategoryModel();
+        $category = $categoryModel->findBySlug($slug);
+        $bookModel = $this->getBookModel();
+
+        $data = array();
+        $data['title'] = $category ? $category['name'] : 'Danh mục';
+        $data['books'] = $bookModel->byCategory($slug);
+        $data['category'] = $category;
+        $this->view->render('shop/category', $data);
     }
-    public function search(): void {
+
+    public function search(): void
+    {
         $query = trim((string)($_GET['q'] ?? ''));
-        $books = $query === '' ? $this->bookModel()->published() : $this->bookModel()->search($query);
-        $this->view->render('shop/search', ['title'=>'Tìm kiếm','books'=>$books,'query'=>$query]);
+        $bookModel = $this->getBookModel();
+
+        if ($query === '') {
+            $books = $bookModel->published();
+        } else {
+            $books = $bookModel->search($query);
+        }
+
+        $data = array();
+        $data['title'] = 'Tìm kiếm';
+        $data['books'] = $books;
+        $data['query'] = $query;
+        $this->view->render('shop/search', $data);
+    }
+
+    private function getPrice($value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (!is_numeric($value) || (int)$value < 0) {
+            return null;
+        }
+        return (int)$value;
+    }
+
+    private function showNotFoundBook(): void
+    {
+        http_response_code(404);
+        $data = array();
+        $data['title'] = 'Không tìm thấy sách';
+        $data['errorCode'] = '404';
+        $data['errorTitle'] = 'Không tìm thấy sách';
+        $data['errorMessage'] = 'Tựa sách này không tồn tại hoặc đã được gỡ khỏi cửa hàng.';
+        $data['errorLabel'] = 'Bạn có thể quay lại danh sách sách.';
+        $data['primaryUrl'] = '/books';
+        $data['primaryLabel'] = 'Xem danh sách sách';
+        $this->view->render('errors/error', $data);
     }
 }
