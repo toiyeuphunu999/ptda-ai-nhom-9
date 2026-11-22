@@ -25,5 +25,50 @@
 }
 
 /* Compatibility source while semantic classes are converted to utilities. */
-@import "../../public/assets/css/app.css";
-@import "../../public/assets/css/controls.css";
+@import "../../public/assets/css/app.css" layer(legacy);
+@import "../../public/assets/css/controls.css" layer(legacy);
+
+/* Spacing and width refinements, expressed with Tailwind utilities. */
+@layer components {
+    .container { @apply mx-auto w-[calc(100%-32px)] max-w-[1280px]; }
+    .book-grid { @apply grid grid-cols-2 gap-6; }
+    .book-card { @apply p-4; }
+    .category-grid { @apply grid grid-cols-2 gap-5; }
+    .category-card { @apply p-5; }
+    .account-grid { @apply grid grid-cols-1 gap-6; }
+    .purchase-points { @apply grid grid-cols-1 gap-5; }
+    .form-layout { @apply w-full max-w-[880px]; }
+    .empty-state { @apply w-full max-w-[760px] p-8; }
+    .info-card, .admin-panel, .form-card { @apply p-7; }
+    .stat-card { @apply p-5; }
+    .address-list { @apply w-full grid-cols-1; }
+    .saved-address-card, .address-create-form { @apply w-full max-w-none; }
+    .saved-address-card .address-form { @apply grid-cols-2 gap-x-6; }
+    .saved-address-card .address-form label:nth-of-type(4),
+    .saved-address-card .address-form button { @apply col-span-2; }
+    .footer-grid { @apply gap-10; }
+    .detail-grid { @apply gap-12; }
+    .product-details-layout { @apply gap-7; }
+}
+
+@media (min-width: 640px) {
+    .category-grid, .account-grid, .purchase-points { @apply grid-cols-2; }
+    .book-grid { @apply grid-cols-3; }
+}
+
+@media (min-width: 1024px) {
+    .book-grid { @apply grid-cols-4; }
+    .category-grid { @apply grid-cols-4; }
+    .account-grid { @apply grid-cols-2; }
+    .purchase-points { @apply grid-cols-3; }
+}
+
+@media (max-width: 560px) {
+    .container { @apply w-[calc(100%-24px)]; }
+    .info-card, .admin-panel, .form-card, .empty-state { @apply p-5; }
+    .category-grid, .purchase-points { @apply grid-cols-1; }
+    .saved-address-card .address-form { @apply grid-cols-1; }
+    .saved-address-card .address-form label:nth-of-type(4),
+    .saved-address-card .address-form button { @apply col-span-1; }
+    .book-grid { @apply gap-4; }
+}
