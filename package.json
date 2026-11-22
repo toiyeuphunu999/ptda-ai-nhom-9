@@ -5,6 +5,7 @@
     "build:css": "tailwindcss -i ./resources/css/input.css -o ./public/assets/css/tailwind.generated.css --minify"
   },
   "devDependencies": {
-    "tailwindcss": "^4.1.0"
+    "tailwindcss": "^4.1.0",
+    "@tailwindcss/cli": "^4.1.0"
   }
 }

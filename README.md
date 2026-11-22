@@ -2,6 +2,17 @@
 
 Website bán sách trực tuyến cho đồ án WEB212, triển khai trên PHP/Apache/MySQL.
 
+## Build CSS
+
+Giao diện được build bằng Tailwind CSS v4:
+
+```text
+npm install
+npm run build:css
+```
+
+File CSS runtime được tạo tại `public/assets/css/tailwind.generated.css`. Không sửa trực tiếp file generated; chỉnh nguồn tại `resources/css/input.css` và các view PHP.
+
 ## Phạm vi hiện tại
 
 - PHP 8.x, OOP, MVC và routing tập trung tại `public/index.php`.
@@ -38,6 +49,8 @@ Website bán sách trực tuyến cho đồ án WEB212, triển khai trên PHP/A
 ### Thông tin nhận hàng mặc định
 
 - Người dùng có thể lưu họ tên, số điện thoại và địa chỉ nhận hàng tại `/account`.
+- Người dùng có thể lưu nhiều địa chỉ nhận hàng, chọn địa chỉ mặc định và chọn nhanh địa chỉ ở checkout.
+- Người dùng đã đăng nhập có thể lưu, xem và xóa sách trong danh sách yêu thích tại `/wishlist`.
 - Các thông tin đã lưu được tự điền vào form thanh toán và vẫn có thể chỉnh sửa trước khi đặt từng đơn.
 - Checkout yêu cầu email nhận thông báo và lưu email đó cùng đơn hàng.
 
@@ -59,7 +72,7 @@ Sau đó mở `http://localhost:8000/`.
 
 ## Route chính
 
-`/`, `/books`, `/books/{slug}`, `/categories/{slug}`, `/search`, `/cart`, `/checkout`, `/login`, `/register`, `/account`, `/orders`, `/about`, `/contact`, `/faq`, `/guide`, `/shipping`, `/returns`, `/privacy`, `/terms` và nhóm `/admin` (bao gồm `/admin/vouchers`).
+`/`, `/books`, `/books/{slug}`, `/categories/{slug}`, `/search`, `/cart`, `/checkout`, `/login`, `/register`, `/account`, `/wishlist`, `/orders`, `/about`, `/contact`, `/faq`, `/guide`, `/shipping`, `/returns`, `/privacy`, `/terms` và nhóm `/admin` (bao gồm `/admin/vouchers`).
 
 Ảnh bìa mặc định được lưu trong tài nguyên của website. Sách, khách hàng và đơn hàng được quản lý trong database của hệ thống.
 

@@ -1,2 +1,74 @@
-/* Tailwind build-time entry point. Production CSS is served from public/assets/css/app.css. */
 @import "tailwindcss";
+
+@source "../../app/**/*.php";
+@source "../../public/**/*.js";
+
+@theme {
+    --font-sans: "Be Vietnam Pro", Arial, sans-serif;
+    --color-primary: #1e3a5f;
+    --color-primary-dark: #022448;
+    --color-primary-soft: #eff6ff;
+    --color-accent: #c2410c;
+    --color-accent-dark: #9a3412;
+    --color-success: #16a34a;
+    --color-danger: #dc2626;
+    --color-ink: #111827;
+    --color-muted: #475569;
+    --color-line: #e5e7eb;
+    --color-paper: #f8fafc;
+    --color-surface: #ffffff;
+    --color-surface-soft: #eff4ff;
+    --color-surface-blue: #e5eeff;
+    --radius-default: 4px;
+    --shadow-small: 0 1px 2px rgba(15, 23, 42, .05);
+    --shadow-hover: 0 4px 10px rgba(15, 23, 42, .08);
+}
+
+/* Compatibility source while semantic classes are converted to utilities. */
+@import "../../public/assets/css/app.css" layer(legacy);
+@import "../../public/assets/css/controls.css" layer(legacy);
+
+/* Spacing and width refinements, expressed with Tailwind utilities. */
+@layer components {
+    .container { @apply mx-auto w-[calc(100%-32px)] max-w-[1280px]; }
+    .book-grid { @apply grid grid-cols-2 gap-6; }
+    .book-card { @apply p-4; }
+    .category-grid { @apply grid grid-cols-2 gap-5; }
+    .category-card { @apply p-5; }
+    .account-grid { @apply grid grid-cols-1 gap-6; }
+    .purchase-points { @apply grid grid-cols-1 gap-5; }
+    .form-layout { @apply w-full max-w-[880px]; }
+    .empty-state { @apply w-full max-w-[760px] p-8; }
+    .info-card, .admin-panel, .form-card { @apply p-7; }
+    .stat-card { @apply p-5; }
+    .address-list { @apply w-full grid-cols-1; }
+    .saved-address-card, .address-create-form { @apply w-full max-w-none; }
+    .saved-address-card .address-form { @apply grid-cols-2 gap-x-6; }
+    .saved-address-card .address-form label:nth-of-type(4),
+    .saved-address-card .address-form button { @apply col-span-2; }
+    .footer-grid { @apply gap-10; }
+    .detail-grid { @apply gap-12; }
+    .product-details-layout { @apply gap-7; }
+}
+
+@media (min-width: 640px) {
+    .category-grid, .account-grid, .purchase-points { @apply grid-cols-2; }
+    .book-grid { @apply grid-cols-3; }
+}
+
+@media (min-width: 1024px) {
+    .book-grid { @apply grid-cols-4; }
+    .category-grid { @apply grid-cols-4; }
+    .account-grid { @apply grid-cols-2; }
+    .purchase-points { @apply grid-cols-3; }
+}
+
+@media (max-width: 560px) {
+    .container { @apply w-[calc(100%-24px)]; }
+    .info-card, .admin-panel, .form-card, .empty-state { @apply p-5; }
+    .category-grid, .purchase-points { @apply grid-cols-1; }
+    .saved-address-card .address-form { @apply grid-cols-1; }
+    .saved-address-card .address-form label:nth-of-type(4),
+    .saved-address-card .address-form button { @apply col-span-1; }
+    .book-grid { @apply gap-4; }
+}

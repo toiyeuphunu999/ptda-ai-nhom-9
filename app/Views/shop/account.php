@@ -34,6 +34,20 @@
         <a href="/orders">Xem lịch sử đơn hàng</a>
     </div>
 </section>
+<section class="container section address-section">
+    <div class="section-heading"><div><p class="eyebrow">Giao hàng</p><h2>Địa chỉ nhận hàng</h2></div></div>
+    <div class="address-list">
+        <?php foreach (($addresses ?? []) as $savedAddress): ?>
+            <article class="info-card saved-address-card">
+                <div class="address-card-heading"><div><h3><?= ViewHelper::escape($savedAddress['label']) ?></h3><?php if ((int)$savedAddress['is_default'] === 1): ?><span class="report-badge report-badge-regular">Mặc định</span><?php endif; ?></div><span class="material-symbols-outlined" aria-hidden="true">location_on</span></div>
+                <p><strong><?= ViewHelper::escape($savedAddress['recipient_name']) ?></strong> · <?= ViewHelper::escape($savedAddress['phone']) ?></p><p><?= ViewHelper::escape($savedAddress['address']) ?></p>
+                <details><summary>Chỉnh sửa</summary><form class="address-form" method="post" action="/account/addresses/<?= (int)$savedAddress['id'] ?>/update"><?= Csrf::field() ?><label>Tên địa chỉ<input name="label" maxlength="50" value="<?= ViewHelper::escape($savedAddress['label']) ?>" required></label><label>Người nhận<input name="recipient_name" maxlength="120" value="<?= ViewHelper::escape($savedAddress['recipient_name']) ?>" required></label><label>Số điện thoại<input name="phone" maxlength="30" value="<?= ViewHelper::escape($savedAddress['phone']) ?>" required></label><label>Địa chỉ<textarea name="address" rows="3" maxlength="255" required><?= ViewHelper::escape($savedAddress['address']) ?></textarea></label><button class="button button-primary" type="submit">Lưu thay đổi</button></form></details>
+                <div class="address-actions"><?php if ((int)$savedAddress['is_default'] !== 1): ?><form method="post" action="/account/addresses/<?= (int)$savedAddress['id'] ?>/default"><?= Csrf::field() ?><button class="button" type="submit">Đặt mặc định</button></form><?php endif; ?><form method="post" action="/account/addresses/<?= (int)$savedAddress['id'] ?>/delete" onsubmit="return confirm('Xóa địa chỉ này?');"><?= Csrf::field() ?><button class="button button-danger" type="submit">Xóa</button></form></div>
+            </article>
+        <?php endforeach; ?>
+    </div>
+    <form class="form-card address-form address-create-form" method="post" action="/account/addresses"><h3>Thêm địa chỉ mới</h3><?= Csrf::field() ?><label for="address-label">Tên địa chỉ</label><input id="address-label" name="label" maxlength="50" placeholder="Nhà riêng, Công ty..." required><label for="address-recipient">Người nhận</label><input id="address-recipient" name="recipient_name" maxlength="120" value="<?= ViewHelper::escape($user['name'] ?? '') ?>" required><label for="address-phone">Số điện thoại</label><input id="address-phone" name="phone" maxlength="30" value="<?= ViewHelper::escape($user['phone'] ?? '') ?>" required><label for="address-value">Địa chỉ</label><textarea id="address-value" name="address" rows="3" maxlength="255" required></textarea><label class="checkbox-label"><input type="checkbox" name="is_default" value="1"> Đặt làm địa chỉ mặc định</label><button class="button button-primary" type="submit">Thêm địa chỉ</button></form>
+</section>
 <section class="container section">
     <div class="section-heading"><div><p class="eyebrow">Lịch sử</p><h2>Biến động điểm thưởng</h2></div></div>
     <?php if (empty($pointsHistory)): ?>

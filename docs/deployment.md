@@ -12,7 +12,7 @@
 
 Trong MySQL Laragon, tạo database `bookstore_web212`, sau đó chạy lần lượt `database/schema.sql` và `database/seed.sql`. Không chạy lại seed trên production nếu chưa kiểm tra dữ liệu hiện có.
 
-Nếu database đã tồn tại, chạy thêm các migration `database/migrations/012_user_contact_address.sql`, `database/migrations/013_order_shipping_email.sql` và `database/migrations/014_customer_management.sql` để bật thông tin nhận hàng, email trong đơn và quản lý khách hàng.
+Nếu database đã tồn tại, chạy thêm các migration `database/migrations/012_user_contact_address.sql`, `database/migrations/013_order_shipping_email.sql`, `database/migrations/014_customer_management.sql`, `database/migrations/015_user_addresses.sql` và `database/migrations/016_wishlists.sql` để bật thông tin nhận hàng, email trong đơn, quản lý khách hàng, nhiều địa chỉ giao hàng và danh sách yêu thích.
 
 ## Apache Shared Hosting/cPanel
 
