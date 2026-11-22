@@ -2,6 +2,17 @@
 
 Website bán sách trực tuyến cho đồ án WEB212, triển khai trên PHP/Apache/MySQL.
 
+## Build CSS
+
+Giao diện được build bằng Tailwind CSS v4:
+
+```text
+npm install
+npm run build:css
+```
+
+File CSS runtime được tạo tại `public/assets/css/tailwind.generated.css`. Không sửa trực tiếp file generated; chỉnh nguồn tại `resources/css/input.css` và các view PHP.
+
 ## Phạm vi hiện tại
 
 - PHP 8.x, OOP, MVC và routing tập trung tại `public/index.php`.
