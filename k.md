@@ -343,7 +343,7 @@ Nếu cần minh họa, chỉ hiển thị dữ liệu mẫu và ghi rõ đó l�
 - `app/Core/Controller.php`: base class tối thiểu cho kế thừa, không chứa service container phức tạp.
 - `app/Core/View.php`: render view với layout, escape output tại điểm hiển thị, không tự lấy dữ liệu DB.
 - `app/Helpers/ViewHelper.php`: helper tối thiểu như `escape(string)` và định dạng VNĐ; không trộn logic nghiệp vụ.
-- `app/Data/books.php`, `categories.php`: mảng dữ liệu demo tập trung, dữ liệu có cấu trúc nhất quán; không tạo model/database giả.
+- Dữ liệu sách và danh mục hiện lấy từ `app/Models/` và database; không còn dùng mảng dữ liệu demo trong `app/Data/`.
 - `config/app.php`: tên website, base URL theo môi trường, chế độ demo; không chứa mật khẩu/secret.
 - `resources/css/input.css` → `public/assets/css/app.css`: nguồn và đầu ra CSS rõ ràng; Tailwind CLI là build-time, không phải runtime hosting.
 - `public/assets/js/app.js`: chỉ menu mobile, trạng thái hiển thị thuần UI; không gửi request nghiệp vụ, không ghi localStorage giả giỏ hàng.

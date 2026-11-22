@@ -5,7 +5,7 @@
 ```text
 Browser → public/index.php → Router → Controller → View → HTML response
                                       ↓
-                              Data/Model tương lai
+                                    Model
 ```
 
 ## Thành phần
@@ -16,7 +16,7 @@ Browser → public/index.php → Router → Controller → View → HTML respons
 - `app/Core/View.php`: render view trong layout shop/admin.
 - `app/Controllers/`: điều phối request và chọn view.
 - `app/Views/`: HTML trình bày, layout và partial tái sử dụng.
-- `app/Data/`: dữ liệu mẫu tách khỏi view trong giai đoạn UI.
+- `app/Models/`: truy vấn database và xử lý nghiệp vụ.
 - `app/Helpers/ViewHelper.php`: escape HTML và định dạng tiền VNĐ.
 - `config/`: cấu hình không chứa secret thật.
 - `public/assets/`: tài nguyên người dùng được phép truy cập.
