@@ -4,13 +4,13 @@
 
 1. Tạo database `bookstore_web212`.
 2. Chạy `database/schema.sql`.
-3. Chạy migrations theo thứ tự số: `002_reviews_vouchers.sql`, `003_real_publishers.sql`, `004_payments_customer_tiers_reports.sql`, `005_system_settings.sql`, `006_repair_sales_reports.sql`, `007_repair_customer_tier_utf8.sql`, `008_member_points.sql`, `009_google_login.sql`, `010_email_verification.sql`, `011_password_reset_tokens.sql`, `012_user_contact_address.sql`, `013_order_shipping_email.sql`, `014_customer_management.sql`, `015_user_addresses.sql`.
+3. Chạy migrations theo thứ tự số: `002_reviews_vouchers.sql`, `003_real_publishers.sql`, `004_payments_customer_tiers_reports.sql`, `005_system_settings.sql`, `006_repair_sales_reports.sql`, `007_repair_customer_tier_utf8.sql`, `008_member_points.sql`, `009_google_login.sql`, `010_email_verification.sql`, `011_password_reset_tokens.sql`, `012_user_contact_address.sql`, `013_order_shipping_email.sql`, `014_customer_management.sql`, `015_user_addresses.sql`, `016_wishlists.sql`.
 4. Chạy `database/seed.sql` ở local mới.
 5. Không chạy seed lại trên dữ liệu thật khi chưa kiểm tra duplicate và tồn kho.
 
 ## Mô hình hiện tại
 
-Các bảng nghiệp vụ gồm tài khoản, nhiều địa chỉ nhận hàng, hạng khách hàng, danh mục, sách, đơn hàng, chi tiết đơn, thanh toán, lịch sử trạng thái đơn, voucher và đánh giá. Báo cáo và phân tích dùng truy vấn trực tiếp trong `app/Models/Order.php`, không tạo view trong database.
+Các bảng nghiệp vụ gồm tài khoản, nhiều địa chỉ nhận hàng, danh sách yêu thích, hạng khách hàng, danh mục, sách, đơn hàng, chi tiết đơn, thanh toán, lịch sử trạng thái đơn, voucher và đánh giá. Báo cáo và phân tích dùng truy vấn trực tiếp trong `app/Models/Order.php`, không tạo view trong database.
 
 ## Quy tắc an toàn
 
