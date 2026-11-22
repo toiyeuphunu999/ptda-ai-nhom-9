@@ -11,13 +11,13 @@ Browser → public/index.php → Router → Controller → View → HTML respons
 ## Thành phần
 
 - `public/index.php`: front controller, autoload đơn giản, đăng ký route GET và dispatch.
-- `app/Core/Router.php`: khớp route tĩnh/tham số và xử lý 404.
-- `app/Core/Controller.php`: base class tối thiểu cho kế thừa.
-- `app/Core/View.php`: render view trong layout shop/admin.
+- `app/Controllers/Router.php`: khớp route tĩnh/tham số và xử lý 404.
+- `app/Controllers/Controller.php`: base class tối thiểu cho kế thừa.
+- `app/Views/View.php`: render view trong layout shop/admin.
 - `app/Controllers/`: điều phối request và chọn view.
 - `app/Views/`: HTML trình bày, layout và partial tái sử dụng.
 - `app/Models/`: truy vấn database và xử lý nghiệp vụ.
-- `app/Helpers/ViewHelper.php`: escape HTML và định dạng tiền VNĐ.
+- `app/Views/ViewHelper.php`: escape HTML và định dạng tiền VNĐ.
 - `config/`: cấu hình không chứa secret thật.
 - `public/assets/`: tài nguyên người dùng được phép truy cập.
 

@@ -4,9 +4,9 @@ Cập nhật: 2026-11-04. Môi trường: Laragon local, Apache, PHP 8.4.26, MyS
 
 | Yêu cầu | Bằng chứng hiện tại | Trạng thái |
 |---|---|---|
-| PHP OOP và MVC | `app/Controllers`, `app/Models`, `app/Views`, `app/Core` | PASS |
+| PHP OOP và MVC | `app/Controllers`, `app/Models`, `app/Views` | PASS |
 | Routing tập trung và `.htaccess` | `public/index.php`, `public/.htaccess` | PASS |
-| PDO Prepared Statements | `app/Core/Database.php`, các model PDO | PASS |
+| PDO Prepared Statements | `app/Models/Database.php`, các model PDO | PASS |
 | 8 danh mục, 40 sách | `database/seed.sql`, database local | PASS |
 | Đăng ký/đăng nhập/phân quyền | `AuthPageController`, `AdminPageController`, HTTP smoke test | PASS |
 | CSRF/session/password hash | `Csrf.php`, `Session.php`, auth/cart/order forms | PASS |

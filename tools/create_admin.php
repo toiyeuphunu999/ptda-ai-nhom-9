@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require dirname(__DIR__) . '/app/Core/Database.php';
+require dirname(__DIR__) . '/app/Models/Database.php';
 require dirname(__DIR__) . '/app/Models/User.php';
 
 use App\Core\Database;
