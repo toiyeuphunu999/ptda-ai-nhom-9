@@ -8,7 +8,11 @@ use App\Core\Controller;
 
 final class PageController extends Controller
 {
-    public function show(string $page): void { $this->view->render('shop/' . $page, ['title'=>ucfirst($page)]); }
+    public function show(string $page): void
+    {
+        $title = ucfirst($page);
+        $this->view->render('shop/' . $page, array('title' => $title));
+    }
     public function about(): void { $this->show('about'); }
     public function contact(): void { $this->show('contact'); }
     public function faq(): void { $this->show('faq'); }

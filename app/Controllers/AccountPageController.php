@@ -70,5 +70,4 @@ final class AccountPageController extends Controller
         } catch (Throwable $exception) { Session::flash('failure', $exception->getMessage()); }
         header('Location: /account');
     }
-    public function orders(): void { header('Location: /orders'); }
 }

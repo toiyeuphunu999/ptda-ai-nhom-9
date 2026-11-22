@@ -16,7 +16,7 @@ Thanh toán online và email chưa nằm trong phạm vi phát hành hiện tạ
 - `app/Controllers`: điều phối request.
 - `app/Models`: truy vấn PDO và transaction.
 - `app/Views`: layout, partial và màn hình HTML.
-- `app/Core`: Router, View, Session, CSRF, Database.
+- `app/Controllers`, `app/Models`, `app/Views`: route/controller, dữ liệu và giao diện.
 - Apache `.htaccess`, PHP OOP, MySQL, PDO Prepared Statements, CSS/JavaScript thuần.
 
 ## 4. Cơ sở dữ liệu

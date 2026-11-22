@@ -15,6 +15,10 @@ final class HomeController extends Controller
         $database = $this->database();
         $books = (new Book($database))->published();
         $categories = (new Category($database))->all();
-        $this->view->render('shop/home', compact('books', 'categories') + ['title' => 'Trang chủ']);
+        $data = array();
+        $data['title'] = 'Trang chủ';
+        $data['books'] = $books;
+        $data['categories'] = $categories;
+        $this->view->render('shop/home', $data);
     }
 }

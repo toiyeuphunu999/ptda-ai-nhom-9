@@ -81,9 +81,9 @@ Sau đó mở `http://localhost:8000/`.
 - `app/Models`: truy vấn PDO, CRUD và transaction cho dữ liệu nghiệp vụ.
 - `app/Controllers`: tiếp nhận request, kiểm tra dữ liệu, gọi Model và render View.
 - `app/Views`: giao diện PHP/HTML, layout và partial dùng chung; không chứa SQL.
-- `app/Core`: Router, Controller cơ sở, View, Session, CSRF và Database.
+- `app/Controllers`, `app/Models`, `app/Views`: ba thư mục chính của MVC; các lớp nền tảng được đặt trong đúng nhóm tương ứng.
 - `config/routes.php`: danh sách route của ứng dụng.
-- `app/Services/PayOSService.php`: adapter nhỏ để gọi API PayOS; không chứa giao diện.
+- `app/Models/PayOSService.php`: adapter nhỏ để gọi API PayOS; không chứa giao diện.
 
 ## Chạy project
 

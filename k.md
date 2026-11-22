@@ -89,15 +89,16 @@ bookstore-web212/
 │   │   │   └── customers.php
 │   │   └── errors/
 │   │       └── 404.php
-│   ├── Core/
+│   ├── Controllers/
 │   │   ├── Router.php
-│   │   ├── Controller.php
-│   │   └── View.php
-│   ├── Helpers/
-│   │   └── ViewHelper.php
-│   └── Data/
-│       ├── books.php
-│       └── categories.php
+│   │   └── Controller.php
+│   ├── Models/
+│   │   ├── Database.php
+│   │   ├── Session.php
+│   │   └── ...
+│   └── Views/
+│       ├── View.php
+│       └── ViewHelper.php
 ├── config/
 │   └── app.php
 ├── database/
@@ -339,11 +340,11 @@ Nếu cần minh họa, chỉ hiển thị dữ liệu mẫu và ghi rõ đó l�
 
 - `public/index.php`: front controller duy nhất; bootstrap autoload/config, gọi Router, xử lý 404/500 an toàn; không chứa HTML trang hay SQL.
 - `public/.htaccess`: rewrite request không trỏ tới file/thư mục có thật về `index.php`, tắt directory listing; không vô tình chặn assets.
-- `app/Core/Router.php`: đăng ký GET, khớp route có tham số, gọi controller; không tự tạo middleware auth giả.
-- `app/Core/Controller.php`: base class tối thiểu cho kế thừa, không chứa service container phức tạp.
-- `app/Core/View.php`: render view với layout, escape output tại điểm hiển thị, không tự lấy dữ liệu DB.
-- `app/Helpers/ViewHelper.php`: helper tối thiểu như `escape(string)` và định dạng VNĐ; không trộn logic nghiệp vụ.
-- `app/Data/books.php`, `categories.php`: mảng dữ liệu demo tập trung, dữ liệu có cấu trúc nhất quán; không tạo model/database giả.
+- `app/Controllers/Router.php`: đăng ký GET, khớp route có tham số, gọi controller; không tự tạo middleware auth giả.
+- `app/Controllers/Controller.php`: base class tối thiểu cho kế thừa, không chứa service container phức tạp.
+- `app/Views/View.php`: render view với layout, escape output tại điểm hiển thị, không tự lấy dữ liệu DB.
+- `app/Views/ViewHelper.php`: helper tối thiểu như `escape(string)` và định dạng VNĐ; không trộn logic nghiệp vụ.
+- Dữ liệu sách và danh mục hiện lấy từ `app/Models/` và database; không còn dùng mảng dữ liệu demo rời.
 - `config/app.php`: tên website, base URL theo môi trường, chế độ demo; không chứa mật khẩu/secret.
 - `resources/css/input.css` → `public/assets/css/app.css`: nguồn và đầu ra CSS rõ ràng; Tailwind CLI là build-time, không phải runtime hosting.
 - `public/assets/js/app.js`: chỉ menu mobile, trạng thái hiển thị thuần UI; không gửi request nghiệp vụ, không ghi localStorage giả giỏ hàng.

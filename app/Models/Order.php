@@ -122,12 +122,15 @@ final class Order
 
     public function markPayOSWebhook(int $orderId, int $amount, string $status, array $payload): void
     {
-        $mappedStatus = match (strtoupper($status)) {
-            'PAID' => 'paid',
-            'CANCELLED' => 'cancelled',
-            'PROCESSING' => 'processing',
-            default => 'failed',
-        };
+        $mappedStatus = 'failed';
+        $status = strtoupper($status);
+        if ($status === 'PAID') {
+            $mappedStatus = 'paid';
+        } elseif ($status === 'CANCELLED') {
+            $mappedStatus = 'cancelled';
+        } elseif ($status === 'PROCESSING') {
+            $mappedStatus = 'processing';
+        }
         $pdo = $this->database->connection();
         $pdo->beginTransaction();
         try {
@@ -162,6 +165,17 @@ final class Order
         );
         $statement->execute(['user_id' => $userId]);
         return $statement->fetchAll();
+    }
+
+    public function forUserWithItems(int $userId): array
+    {
+        $orders = $this->forUser($userId);
+        $itemsModel = new OrderItem($this->database);
+        foreach ($orders as &$order) {
+            $order['items'] = $itemsModel->forUserOrder((int)$order['id'], $userId);
+        }
+        unset($order);
+        return $orders;
     }
 
     public function cancelForUser(int $orderId, int $userId): void

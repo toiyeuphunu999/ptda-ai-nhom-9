@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Core\Database;
+use RuntimeException;
 
 final class Book
 {
@@ -57,11 +58,13 @@ final class Book
             $parameters['max_price'] = $filters['max_price'];
         }
 
-        $orderBy = match ($filters['sort'] ?? 'newest') {
-            'price_asc' => 'books.price ASC, books.title ASC',
-            'price_desc' => 'books.price DESC, books.title ASC',
-            default => 'books.created_at DESC, books.id DESC',
-        };
+        $orderBy = 'books.created_at DESC, books.id DESC';
+        if (($filters['sort'] ?? 'newest') === 'price_asc') {
+            $orderBy = 'books.price ASC, books.title ASC';
+        }
+        if (($filters['sort'] ?? 'newest') === 'price_desc') {
+            $orderBy = 'books.price DESC, books.title ASC';
+        }
         $sql = 'SELECT books.*, categories.name AS category_name FROM books '
             . 'INNER JOIN categories ON categories.id = books.category_id '
             . 'WHERE ' . implode(' AND ', $conditions) . ' ORDER BY ' . $orderBy;
@@ -144,6 +147,29 @@ final class Book
         );
         $statement->execute($data);
         return (int)$this->database->connection()->lastInsertId();
+    }
+
+    public function dataFromInput(array $input): array
+    {
+        $title = trim((string)($input['title'] ?? ''));
+        $author = trim((string)($input['author'] ?? ''));
+        $price = (int)($input['price'] ?? 0);
+        $original = trim((string)($input['original_price'] ?? ''));
+        $categoryId = (int)($input['category_id'] ?? 0);
+        if ($title === '' || $author === '' || $categoryId < 1 || $price < 0 || ($original !== '' && (int)$original < $price)) {
+            throw new RuntimeException('Vui lòng kiểm tra tên sách, tác giả, danh mục và giá sách.');
+        }
+        return [
+            'category_id' => $categoryId,
+            'title' => $title,
+            'author' => $author,
+            'publisher' => trim((string)($input['publisher'] ?? '')) ?: null,
+            'price' => $price,
+            'original_price' => $original === '' ? null : (int)$original,
+            'description' => trim((string)($input['description'] ?? '')) ?: null,
+            'stock_quantity' => max(0, (int)($input['stock_quantity'] ?? 0)),
+            'status' => in_array($input['status'] ?? 'draft', ['draft', 'published', 'hidden'], true) ? $input['status'] : 'draft',
+        ];
     }
 
     public function update(int $id, array $data): void

@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Core\Database;
 use App\Helpers\SlugHelper;
+use RuntimeException;
 
 final class Category
 {
@@ -37,8 +38,17 @@ final class Category
         $statement = $this->database->connection()->prepare(
             'INSERT INTO categories (name, slug, description) VALUES (:name, :slug, :description)'
         );
-        $statement->execute(compact('name', 'slug', 'description'));
+        $statement->execute(array('name' => $name, 'slug' => $slug, 'description' => $description));
         return (int)$this->database->connection()->lastInsertId();
+    }
+
+    public function dataFromInput(array $input): array
+    {
+        $name = trim((string)($input['name'] ?? ''));
+        if ($name === '') {
+            throw new RuntimeException('Tên danh mục không được để trống.');
+        }
+        return [$name, '', trim((string)($input['description'] ?? '')) ?: null];
     }
 
     public function update(int $id, string $name, string $slug, ?string $description): void
@@ -47,7 +57,7 @@ final class Category
         $statement = $this->database->connection()->prepare(
             'UPDATE categories SET name = :name, slug = :slug, description = :description WHERE id = :id'
         );
-        $statement->execute(compact('id', 'name', 'slug', 'description'));
+        $statement->execute(array('id' => $id, 'name' => $name, 'slug' => $slug, 'description' => $description));
     }
 
     private function uniqueSlug(string $name, ?int $ignoreId = null): string

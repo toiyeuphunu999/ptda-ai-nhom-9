@@ -24,6 +24,12 @@ final class ViewHelper
         return number_format($value, 0, ',', '.') . ' đ';
     }
 
+    public static function richText(string $value): string
+    {
+        $allowedTags = '<p><br><strong><em><u><s><ol><ul><li><blockquote>';
+        return strip_tags($value, $allowedTags);
+    }
+
     public static function orderStatus(string $status): string
     {
         return [

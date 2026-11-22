@@ -10,11 +10,22 @@ final class AdminDashboardController extends AdminController
 {
     public function dashboard(): void
     {
-        $this->authorize(); $db = $this->database(); $orders = new Order($db);
-        $this->view->render('admin/dashboard', ['title'=>'Tổng quan','bookCount'=>(new Book($db))->countAll(),'categoryCount'=>(new Category($db))->countAll(),'orderCount'=>$orders->countAll(),'customerCount'=>(new User($db))->countAll(),'metrics'=>$orders->dashboardMetrics()], 'admin');
+        $this->authorize();
+        $database = $this->database();
+        $orderModel = new Order($database);
+        $data = array('title' => 'Tổng quan');
+        $data['bookCount'] = (new Book($database))->countAll();
+        $data['categoryCount'] = (new Category($database))->countAll();
+        $data['orderCount'] = $orderModel->countAll();
+        $data['customerCount'] = (new User($database))->countAll();
+        $data['metrics'] = $orderModel->dashboardMetrics();
+        $this->view->render('admin/dashboard', $data, 'admin');
     }
     public function reports(): void
     {
-        $this->authorize(); $this->view->render('admin/reports', ['title'=>'Báo cáo bán hàng','reports'=>(new Order($this->database()))->businessReports()], 'admin');
+        $this->authorize();
+        $data = array('title' => 'Báo cáo bán hàng');
+        $data['reports'] = (new Order($this->database()))->businessReports();
+        $this->view->render('admin/reports', $data, 'admin');
     }
 }

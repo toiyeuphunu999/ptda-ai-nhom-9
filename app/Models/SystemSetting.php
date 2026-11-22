@@ -16,10 +16,14 @@ final class SystemSetting
     public function allForAdmin(): array
     {
         $rows = $this->database->connection()->query('SELECT setting_key, setting_value, is_secret, updated_at FROM system_settings ORDER BY setting_key')->fetchAll();
-        return array_map(static function (array $row): array {
-            if ((int)$row['is_secret'] === 1) $row['setting_value'] = $row['setting_value'] ? '••••••••' : '';
-            return $row;
-        }, $rows);
+        $settings = array();
+        foreach ($rows as $row) {
+            if ((int)$row['is_secret'] === 1) {
+                $row['setting_value'] = $row['setting_value'] ? '••••••••' : '';
+            }
+            $settings[] = $row;
+        }
+        return $settings;
     }
 
     public function payOSConfig(): array
@@ -101,6 +105,63 @@ final class SystemSetting
             if ($pdo->inTransaction()) $pdo->rollBack();
             throw $exception;
         }
+    }
+
+    public function dataFromInput(array $input): array
+    {
+        $shopPhone = trim((string)($input['shop_phone'] ?? ''));
+        $shopEmail = trim((string)($input['shop_email'] ?? ''));
+        $payosClientId = trim((string)($input['payos_client_id'] ?? ''));
+        $payosApiKey = trim((string)($input['payos_api_key'] ?? ''));
+        $payosChecksumKey = trim((string)($input['payos_checksum_key'] ?? ''));
+        $googleClientId = trim((string)($input['google_client_id'] ?? ''));
+        $googleClientSecret = trim((string)($input['google_client_secret'] ?? ''));
+        $googleRedirectUri = trim((string)($input['google_redirect_uri'] ?? ''));
+        $mailFrom = trim((string)($input['mail_from'] ?? ''));
+        $mailFromName = trim((string)($input['mail_from_name'] ?? ''));
+        $smtpHost = trim((string)($input['mail_smtp_host'] ?? ''));
+        $smtpUsername = trim((string)($input['mail_smtp_username'] ?? ''));
+        $smtpPassword = trim((string)($input['mail_smtp_password'] ?? ''));
+        $smtpEncryption = $input['mail_smtp_encryption'] ?? 'tls';
+        if (!in_array($smtpEncryption, array('tls', 'ssl', 'none'), true)) {
+            $smtpEncryption = 'tls';
+        }
+        return [
+            'SHOP_PHONE' => ['value' => $shopPhone, 'secret' => false],
+            'SHOP_EMAIL' => ['value' => $shopEmail, 'secret' => false],
+            'SHIPPING_FEE' => ['value' => (string)max(0, (int)($input['shipping_fee'] ?? 0)), 'secret' => false],
+            'PAYOS_CLIENT_ID' => ['value' => $payosClientId, 'secret' => true],
+            'PAYOS_API_KEY' => ['value' => $payosApiKey, 'secret' => true],
+            'PAYOS_CHECKSUM_KEY' => ['value' => $payosChecksumKey, 'secret' => true],
+            'GOOGLE_CLIENT_ID' => ['value' => $googleClientId, 'secret' => true],
+            'GOOGLE_CLIENT_SECRET' => ['value' => $googleClientSecret, 'secret' => true],
+            'GOOGLE_REDIRECT_URI' => ['value' => $googleRedirectUri, 'secret' => false],
+            'MAIL_FROM' => ['value' => $mailFrom, 'secret' => false],
+            'MAIL_FROM_NAME' => ['value' => $mailFromName, 'secret' => false],
+            'MAIL_SMTP_HOST' => ['value' => $smtpHost, 'secret' => false],
+            'MAIL_SMTP_PORT' => ['value' => (string)max(1, (int)($input['mail_smtp_port'] ?? 587)), 'secret' => false],
+            'MAIL_SMTP_USERNAME' => ['value' => $smtpUsername, 'secret' => false],
+            'MAIL_SMTP_PASSWORD' => ['value' => $smtpPassword, 'secret' => true],
+            'MAIL_SMTP_ENCRYPTION' => ['value' => $smtpEncryption, 'secret' => false],
+        ];
+    }
+
+    public function adminViewData(?string $error = null): array
+    {
+        $payos = $this->payOSConfig();
+        $google = $this->googleConfig();
+        $mail = $this->mailConfig();
+        return [
+            'title' => 'Cài đặt hệ thống',
+            'settings' => $this->allForAdmin(),
+            'payosConfig' => $payos,
+            'payosConfigured' => trim((string)($payos['client_id'] ?? '')) !== '' && trim((string)($payos['api_key'] ?? '')) !== '' && trim((string)($payos['checksum_key'] ?? '')) !== '',
+            'googleConfig' => $google,
+            'googleConfigured' => trim((string)($google['client_id'] ?? '')) !== '' && trim((string)($google['client_secret'] ?? '')) !== '' && trim((string)($google['redirect_uri'] ?? '')) !== '',
+            'mailConfig' => $mail,
+            'mailConfigured' => trim((string)($mail['host'] ?? '')) !== '' && filter_var((string)($mail['from'] ?? ''), FILTER_VALIDATE_EMAIL) !== false,
+            'error' => $error,
+        ];
     }
 
     private function encryptionKey(): string
