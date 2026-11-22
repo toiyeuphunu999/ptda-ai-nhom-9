@@ -20,7 +20,7 @@
     </div>
 </section>
 <section class="container section product-details-layout">
-    <article class="info-card product-description"><p class="eyebrow">Giới thiệu sản phẩm</p><h2>Mô tả sách</h2><p><?= nl2br(ViewHelper::escape((string)$detailBook['description'])) ?></p></article>
+    <article class="info-card product-description"><p class="eyebrow">Giới thiệu sản phẩm</p><h2>Mô tả sách</h2><div><?= ViewHelper::richText((string)$detailBook['description']) ?></div></article>
     <aside class="info-card product-service-card"><p class="eyebrow">Mua sắm an tâm</p><h2>Thông tin dịch vụ</h2><ul><li><span class="material-symbols-outlined" aria-hidden="true">local_shipping</span><div><strong>Giao hàng tận nơi</strong><small>Thông tin nhận hàng được xác nhận ở checkout.</small></div></li><li><span class="material-symbols-outlined" aria-hidden="true">payments</span><div><strong>Thanh toán COD</strong><small>Thanh toán khi nhận hàng.</small></div></li><li><span class="material-symbols-outlined" aria-hidden="true">receipt_long</span><div><strong>Theo dõi đơn hàng</strong><small>Xem trạng thái trong tài khoản.</small></div></li></ul></aside>
 </section>
 <?php if (!empty($relatedBooks)): ?><section class="container section related-books"><div class="section-heading"><div><p class="eyebrow">Có thể bạn cũng thích</p><h2>Sách cùng danh mục</h2></div><a href="/categories/<?= ViewHelper::escape((string)($detailBook['category_slug'] ?? '')) ?>">Xem danh mục</a></div><div class="book-grid"><?php foreach ($relatedBooks as $relatedBook): ?><?php $book = $relatedBook; require dirname(__DIR__) . '/partials/book_card.php'; ?><?php endforeach; ?></div></section><?php $book = $detailBook; endif; ?>

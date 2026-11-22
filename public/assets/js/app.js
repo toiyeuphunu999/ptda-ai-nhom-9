@@ -47,6 +47,32 @@ window.toggleNavigationMenu = (event, button) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  const editorElement = document.getElementById('description-editor');
+  const descriptionInput = document.getElementById('description');
+  const bookForm = document.querySelector('[data-book-form]');
+
+  if (editorElement && descriptionInput && bookForm) {
+    const oldContent = editorElement.getAttribute('data-editor-content') || '';
+    editorElement.innerHTML = oldContent;
+
+    document.querySelectorAll('[data-editor-command]').forEach((button) => {
+      button.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+      });
+      button.addEventListener('click', () => {
+        const command = button.getAttribute('data-editor-command');
+        const value = button.getAttribute('data-editor-value') || null;
+        editorElement.focus();
+        document.execCommand(command, false, value);
+      });
+    });
+
+    bookForm.addEventListener('submit', () => {
+      const html = editorElement.innerHTML.trim();
+      descriptionInput.value = html === '<br>' ? '' : html;
+    });
+  }
+
   document.querySelectorAll('[data-accordion-trigger]').forEach((button) => {
     const panelId = button.getAttribute('aria-controls');
     const panel = panelId ? document.getElementById(panelId) : null;
