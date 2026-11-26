@@ -47,29 +47,28 @@ window.toggleNavigationMenu = (event, button) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  const editorElement = document.getElementById('description-editor');
-  const descriptionInput = document.getElementById('description');
   const bookForm = document.querySelector('[data-book-form]');
 
-  if (editorElement && descriptionInput && bookForm) {
-    const oldContent = editorElement.getAttribute('data-editor-content') || '';
-    editorElement.innerHTML = oldContent;
+  if (bookForm) {
+    const editors = bookForm.querySelectorAll('[data-simple-editor]');
+    editors.forEach((editor) => {
+      const editorElement = editor.querySelector('[data-editor-content]');
+      const input = editor.querySelector('[data-editor-input]') || editor.previousElementSibling;
+      if (!editorElement || !input) return;
 
-    document.querySelectorAll('[data-editor-command]').forEach((button) => {
-      button.addEventListener('mousedown', (event) => {
-        event.preventDefault();
+      const oldContent = editorElement.getAttribute('data-editor-content') || '';
+      editorElement.innerHTML = oldContent;
+      editor.querySelectorAll('[data-editor-command]').forEach((button) => {
+        button.addEventListener('mousedown', (event) => event.preventDefault());
+        button.addEventListener('click', () => {
+          editorElement.focus();
+          document.execCommand(button.getAttribute('data-editor-command'), false, button.getAttribute('data-editor-value') || null);
+        });
       });
-      button.addEventListener('click', () => {
-        const command = button.getAttribute('data-editor-command');
-        const value = button.getAttribute('data-editor-value') || null;
-        editorElement.focus();
-        document.execCommand(command, false, value);
+      bookForm.addEventListener('submit', () => {
+        const html = editorElement.innerHTML.trim();
+        input.value = html === '<br>' ? '' : html;
       });
-    });
-
-    bookForm.addEventListener('submit', () => {
-      const html = editorElement.innerHTML.trim();
-      descriptionInput.value = html === '<br>' ? '' : html;
     });
   }
 

@@ -98,18 +98,18 @@ final class User
     public function createPasswordResetToken(int $id): string
     {
         $token = bin2hex(random_bytes(32));
-        $pdo = $this->database->connection();
-        $pdo->beginTransaction();
+        $databaseConnection = $this->database->connection();
+        $databaseConnection->beginTransaction();
         try {
-            $pdo->prepare('DELETE FROM password_reset_tokens WHERE user_id = :user_id OR expires_at < NOW()')
+            $databaseConnection->prepare('DELETE FROM password_reset_tokens WHERE user_id = :user_id OR expires_at < NOW()')
                 ->execute(['user_id' => $id]);
-            $pdo->prepare(
+            $databaseConnection->prepare(
                 'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
                  VALUES (:user_id, :token_hash, DATE_ADD(NOW(), INTERVAL 60 MINUTE))'
             )->execute(['user_id' => $id, 'token_hash' => hash('sha256', $token)]);
-            $pdo->commit();
+            $databaseConnection->commit();
         } catch (\Throwable $exception) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
+            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
             throw $exception;
         }
         return $token;
@@ -117,10 +117,10 @@ final class User
 
     public function resetPassword(string $token, string $password): bool
     {
-        $pdo = $this->database->connection();
-        $pdo->beginTransaction();
+        $databaseConnection = $this->database->connection();
+        $databaseConnection->beginTransaction();
         try {
-            $statement = $pdo->prepare(
+            $statement = $databaseConnection->prepare(
                 'SELECT user_id FROM password_reset_tokens
                  WHERE token_hash = :token_hash AND expires_at >= NOW() AND used_at IS NULL
                  LIMIT 1 FOR UPDATE'
@@ -128,21 +128,21 @@ final class User
             $statement->execute(['token_hash' => hash('sha256', trim($token))]);
             $reset = $statement->fetch();
             if (!$reset) {
-                $pdo->rollBack();
+                $databaseConnection->rollBack();
                 return false;
             }
 
-            $pdo->prepare('UPDATE users SET password_hash = :password_hash WHERE id = :id')->execute([
+            $databaseConnection->prepare('UPDATE users SET password_hash = :password_hash WHERE id = :id')->execute([
                 'password_hash' => password_hash($password, PASSWORD_DEFAULT),
                 'id' => (int)$reset['user_id'],
             ]);
-            $pdo->prepare('UPDATE password_reset_tokens SET used_at = NOW() WHERE token_hash = :token_hash')->execute([
+            $databaseConnection->prepare('UPDATE password_reset_tokens SET used_at = NOW() WHERE token_hash = :token_hash')->execute([
                 'token_hash' => hash('sha256', trim($token)),
             ]);
-            $pdo->commit();
+            $databaseConnection->commit();
             return true;
         } catch (\Throwable $exception) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
+            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
             throw $exception;
         }
     }
@@ -179,7 +179,7 @@ final class User
         if ($name === '' || mb_strlen($name) > 120) {
             throw new \RuntimeException('Họ tên không được để trống và tối đa 120 ký tự.');
         }
-        if (mb_strlen($phone) > 30) throw new \RuntimeException('Số điện thoại tối đa 30 ký tự.');
+        if ($phone !== '' && !preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) throw new \RuntimeException('Số điện thoại không hợp lệ.');
         if (mb_strlen($address) > 255) throw new \RuntimeException('Địa chỉ tối đa 255 ký tự.');
         $statement = $this->database->connection()->prepare('UPDATE users SET name = :name, phone = :phone, address = :address WHERE id = :id');
         $statement->execute(['name' => $name, 'phone' => $phone !== '' ? $phone : null, 'address' => $address !== '' ? $address : null, 'id' => $id]);
@@ -191,7 +191,7 @@ final class User
             "SELECT users.id, users.name, users.email, users.phone, users.address, users.role,
                     users.wallet_balance, users.purchase_blocked, customer_tiers.name AS customer_tier,
                     users.created_at, COUNT(DISTINCT orders.id) AS order_count,
-                    COALESCE(SUM(CASE WHEN orders.status IN ('confirmed', 'shipping', 'completed') THEN orders.total ELSE 0 END), 0) AS total_spent
+                    COALESCE(SUM(CASE WHEN orders.status = 'completed' THEN orders.total ELSE 0 END), 0) AS total_spent
              FROM users INNER JOIN customer_tiers ON customer_tiers.id = users.customer_tier_id
              LEFT JOIN orders ON orders.user_id = users.id
              GROUP BY users.id, users.name, users.email, users.phone, users.address, users.role,
@@ -205,7 +205,7 @@ final class User
         $statement = $this->database->connection()->prepare(
             "SELECT users.*, customer_tiers.name AS customer_tier,
                     COUNT(DISTINCT orders.id) AS order_count,
-                    COALESCE(SUM(CASE WHEN orders.status IN ('confirmed', 'shipping', 'completed') THEN orders.total ELSE 0 END), 0) AS total_spent
+                    COALESCE(SUM(CASE WHEN orders.status = 'completed' THEN orders.total ELSE 0 END), 0) AS total_spent
              FROM users INNER JOIN customer_tiers ON customer_tiers.id = users.customer_tier_id
              LEFT JOIN orders ON orders.user_id = users.id
              WHERE users.id = :id
@@ -222,7 +222,7 @@ final class User
         $name = trim($name); $email = trim($email); $phone = trim($phone); $address = trim($address);
         if ($name === '' || mb_strlen($name) > 120) throw new \RuntimeException('Họ tên không được để trống và tối đa 120 ký tự.');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190) throw new \RuntimeException('Email không hợp lệ.');
-        if (mb_strlen($phone) > 30) throw new \RuntimeException('Số điện thoại tối đa 30 ký tự.');
+        if ($phone !== '' && !preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) throw new \RuntimeException('Số điện thoại không hợp lệ.');
         if (mb_strlen($address) > 255) throw new \RuntimeException('Địa chỉ tối đa 255 ký tự.');
         $statement = $this->database->connection()->prepare(
             'UPDATE users SET name = :name, email = :email, phone = :phone, address = :address WHERE id = :id'
@@ -260,23 +260,23 @@ final class User
         if ($amount === 0) throw new \RuntimeException('Số tiền điều chỉnh phải khác 0.');
         $description = trim($description);
         if ($description === '' || mb_strlen($description) > 255) throw new \RuntimeException('Vui lòng nhập lý do, tối đa 255 ký tự.');
-        $pdo = $this->database->connection();
-        $pdo->beginTransaction();
+        $databaseConnection = $this->database->connection();
+        $databaseConnection->beginTransaction();
         try {
-            $statement = $pdo->prepare('SELECT wallet_balance FROM users WHERE id = :id FOR UPDATE');
+            $statement = $databaseConnection->prepare('SELECT wallet_balance FROM users WHERE id = :id FOR UPDATE');
             $statement->execute(['id' => $id]);
             $balance = $statement->fetchColumn();
             if ($balance === false) throw new \RuntimeException('Không tìm thấy tài khoản.');
             $newBalance = (int)$balance + $amount;
             if ($newBalance < 0) throw new \RuntimeException('Không thể trừ vượt quá số dư ví hiện tại.');
-            $pdo->prepare('UPDATE users SET wallet_balance = :balance WHERE id = :id')->execute(['balance'=>$newBalance, 'id'=>$id]);
-            $pdo->prepare(
+            $databaseConnection->prepare('UPDATE users SET wallet_balance = :balance WHERE id = :id')->execute(['balance'=>$newBalance, 'id'=>$id]);
+            $databaseConnection->prepare(
                 "INSERT INTO wallet_transactions (user_id, amount, balance_after, transaction_type, description, created_by)
                  VALUES (:user_id, :amount, :balance_after, 'admin_adjustment', :description, :created_by)"
             )->execute(['user_id'=>$id, 'amount'=>$amount, 'balance_after'=>$newBalance, 'description'=>$description, 'created_by'=>$adminId]);
-            $pdo->commit();
+            $databaseConnection->commit();
         } catch (\Throwable $exception) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
+            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
             throw $exception;
         }
     }

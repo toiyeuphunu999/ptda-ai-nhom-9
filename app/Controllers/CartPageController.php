@@ -116,8 +116,11 @@ class CartPageController extends Controller
     public function payosWebhook(): void
     {
         try {
+            if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 1024 * 1024) {
+                throw new \RuntimeException('Webhook quá lớn.');
+            }
             $json = file_get_contents('php://input');
-            $payload = json_decode((string)$json, true);
+            $payload = json_decode((string)$json, true, 512, JSON_THROW_ON_ERROR);
             if (!is_array($payload)) {
                 throw new \RuntimeException('Webhook không hợp lệ.');
             }
@@ -152,6 +155,78 @@ class CartPageController extends Controller
         $data['orders'] = $orders;
         $data['orderItems'] = $orderItems;
         $this->view->render('shop/order_history', $data);
+    }
+
+    public function orderDetail(string $id): void
+    {
+        Session::start();
+        $user = Session::get('user');
+        if (!is_array($user)) { header('Location: /login'); return; }
+        $order = (new Order($this->database()))->detailForUser((int)$id, (int)$user['id']);
+        if (!$order) { http_response_code(404); $this->view->render('errors/error', ['title'=>'Không tìm thấy đơn hàng','errorCode'=>'404','errorTitle'=>'Không tìm thấy đơn hàng','errorMessage'=>'Đơn hàng không tồn tại.','errorLabel'=>'Quay lại lịch sử đơn hàng.','primaryUrl'=>'/orders','primaryLabel'=>'Lịch sử đơn hàng']); return; }
+        $this->view->render('shop/order_detail', ['title' => 'Chi tiết đơn hàng', 'order' => $order]);
+    }
+
+    public function cancelOrder(string $id): void
+    {
+        Session::start();
+        $user = Session::get('user');
+        if (!is_array($user)) { header('Location: /login'); return; }
+        try {
+            Csrf::verify($_POST['_csrf'] ?? null);
+            (new Order($this->database()))->cancelByCustomer((int)$id, (int)$user['id'], (string)($_POST['reason'] ?? ''));
+            Session::flash('success', 'Đã gửi xử lý hủy đơn hàng.');
+        } catch (Throwable $exception) { Session::flash('failure', $exception->getMessage()); }
+        header('Location: /orders/' . (int)$id);
+    }
+
+    public function confirmReceived(string $id): void
+    {
+        Session::start();
+        $user = Session::get('user');
+        if (!is_array($user)) { header('Location: /login'); return; }
+        try {
+            Csrf::verify($_POST['_csrf'] ?? null);
+            (new Order($this->database()))->confirmReceived((int)$id, (int)$user['id']);
+            Session::flash('success', 'Đã xác nhận nhận được hàng. Đơn hàng đã hoàn tất.');
+        } catch (Throwable $exception) { Session::flash('failure', $exception->getMessage()); }
+        header('Location: /orders/' . (int)$id);
+    }
+
+    public function requestReturn(string $id): void
+    {
+        Session::start();
+        $user = Session::get('user');
+        if (!is_array($user)) { header('Location: /login'); return; }
+        $image = null;
+        try {
+            Csrf::verify($_POST['_csrf'] ?? null);
+            $image = $this->saveReturnImage($_FILES['return_image'] ?? array());
+            (new Order($this->database()))->requestReturn((int)$id, (int)$user['id'], (string)($_POST['reason'] ?? ''), $image);
+            Session::flash('success', 'Đã gửi yêu cầu đổi trả để nhà sách kiểm tra.');
+        } catch (Throwable $exception) {
+            if ($image !== null) {
+                $savedPath = dirname(__DIR__, 2) . '/storage/returns/' . basename($image);
+                if (is_file($savedPath)) unlink($savedPath);
+            }
+            Session::flash('failure', $exception->getMessage());
+        }
+        header('Location: /orders/' . (int)$id);
+    }
+
+    private function saveReturnImage(array $file): ?string
+    {
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) return null;
+        $temporaryPath = (string)($file['tmp_name'] ?? '');
+        if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK || !is_uploaded_file($temporaryPath) || (int)($file['size'] ?? 0) < 1 || (int)($file['size'] ?? 0) > 5 * 1024 * 1024) throw new \RuntimeException('Ảnh đổi trả không hợp lệ hoặc vượt quá 5MB.');
+        $mime = (string)(mime_content_type($temporaryPath) ?: '');
+        $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+        if (!isset($extensions[$mime])) throw new \RuntimeException('Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP.');
+        $directory = dirname(__DIR__, 2) . '/storage/returns';
+        if (!is_dir($directory) && !mkdir($directory, 0750, true)) throw new \RuntimeException('Không thể tạo thư mục lưu ảnh đổi trả.');
+        $name = bin2hex(random_bytes(16)) . '.' . $extensions[$mime];
+        if (!move_uploaded_file((string)$file['tmp_name'], $directory . '/' . $name)) throw new \RuntimeException('Không thể lưu ảnh đổi trả.');
+        return $name;
     }
 
     public function add(string $id): void

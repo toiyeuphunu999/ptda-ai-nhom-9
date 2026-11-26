@@ -57,9 +57,16 @@ class Checkout
         $address = trim((string)($input['shipping_address'] ?? ''));
         $paymentMethod = (string)($input['payment_method'] ?? 'cod');
 
-        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $phone === '' || $address === '') {
-            throw new RuntimeException('Vui lòng nhập đầy đủ thông tin nhận hàng.');
+        // Giao diện dùng tên "payos", còn database lưu phương thức này là
+        // "bank_transfer". Chuẩn hóa trước khi kiểm tra và tạo đơn hàng.
+        if ($paymentMethod === 'payos') {
+            $paymentMethod = 'bank_transfer';
         }
+
+        if ($name === '' || mb_strlen($name) > 120) throw new RuntimeException('Họ tên người nhận không hợp lệ, tối đa 120 ký tự.');
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190) throw new RuntimeException('Email nhận thông báo không hợp lệ.');
+        if (!preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) throw new RuntimeException('Số điện thoại không hợp lệ.');
+        if ($address === '' || mb_strlen($address) > 255) throw new RuntimeException('Địa chỉ nhận hàng không hợp lệ, tối đa 255 ký tự.');
         if ($paymentMethod !== 'cod' && $paymentMethod !== 'bank_transfer') {
             throw new RuntimeException('Phương thức thanh toán không hợp lệ.');
         }
@@ -82,7 +89,9 @@ class Checkout
             );
         }
 
-        $voucherId = $this->getVoucherId((string)($input['voucher_code'] ?? ''), $cartItems);
+        $voucherCode = trim((string)($input['voucher_code'] ?? ''));
+        if (mb_strlen($voucherCode) > 50) throw new RuntimeException('Mã giảm giá không hợp lệ.');
+        $voucherId = $this->getVoucherId($voucherCode, $cartItems);
         $orderModel = new Order($this->database);
         $orderCode = $orderModel->createFromCart(
             $userId,
@@ -94,6 +103,7 @@ class Checkout
             $voucherId,
             $paymentMethod
         );
+        $orderModel->notifyNewOrder($orderCode);
 
         if ($paymentMethod === 'bank_transfer') {
             $order = $orderModel->findByCode($orderCode);
@@ -132,7 +142,7 @@ class Checkout
     public function cancelPayOS(int $orderCode, int $userId): void
     {
         $orderModel = new Order($this->database);
-        $order = $orderModel->findByCode((string)$orderCode);
+        $order = $orderModel->findById($orderCode);
         if ($order && (int)$order['user_id'] === $userId) {
             $orderModel->cancelForUser((int)$order['id'], $userId);
         }
@@ -148,14 +158,18 @@ class Checkout
 
         $data = $payload['data'] ?? array();
         $orderCode = (string)($data['orderCode'] ?? '');
-        $order = (new Order($this->database))->findByCode($orderCode);
+        $amount = filter_var($data['amount'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if (!preg_match('/^[0-9]+$/', $orderCode) || $amount === false) {
+            throw new RuntimeException('Dữ liệu webhook thanh toán không hợp lệ.');
+        }
+        $order = (new Order($this->database))->findById((int)$orderCode);
         if (!$order) {
             throw new RuntimeException('Không tìm thấy đơn hàng.');
         }
 
         (new Order($this->database))->markPayOSWebhook(
             (int)$order['id'],
-            (int)($data['amount'] ?? 0),
+            $amount,
             (string)($data['code'] ?? $payload['code'] ?? 'FAILED'),
             $payload
         );

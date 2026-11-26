@@ -22,6 +22,8 @@ final class SmtpMailer
         $from = trim((string)($this->config['from'] ?? ''));
         $fromName = (string)($this->config['from_name'] ?? '');
         if ($host === '' || $port < 1 || $from === '') throw new RuntimeException('SMTP chưa được cấu hình đầy đủ.');
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL) || !filter_var($from, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Địa chỉ email SMTP không hợp lệ.');
+        if (preg_match('/[\r\n]/', $host . $from . $fromName . $to . $subject) === 1) throw new RuntimeException('Thông tin email chứa ký tự không hợp lệ.');
         if (str_contains($host, '@') || filter_var($host, FILTER_VALIDATE_URL) !== false) {
             throw new RuntimeException('SMTP Host không hợp lệ. Hãy nhập hostname, ví dụ smtp.tino.vn.');
         }

@@ -3,7 +3,8 @@ use App\Core\Csrf;
 use App\Helpers\ViewHelper;
 
 $editing = !empty($book['id']);
-$description = (string)($book['description'] ?? '');
+$description = ViewHelper::richText((string)($book['description'] ?? ''));
+$previewContent = ViewHelper::richText((string)($book['preview_content'] ?? ''));
 ?>
 
 <div class="admin-panel form-layout">
@@ -41,7 +42,7 @@ $description = (string)($book['description'] ?? '');
         <input id="stock" name="stock_quantity" type="number" min="0" value="<?= (int)($book['stock_quantity'] ?? 0) ?>">
 
         <label for="description-editor">Mô tả ngắn</label>
-        <textarea id="description" name="description" hidden><?= ViewHelper::escape($description) ?></textarea>
+        <textarea id="description" name="description" data-editor-input hidden><?= ViewHelper::escape($description) ?></textarea>
         <div class="book-description-editor" data-simple-editor>
             <div class="editor-toolbar" role="toolbar" aria-label="Định dạng mô tả">
                 <button type="button" data-editor-command="bold"><strong>B</strong></button>
@@ -55,6 +56,22 @@ $description = (string)($book['description'] ?? '');
             <div id="description-editor" class="editor-content" contenteditable="true" data-editor-content="<?= ViewHelper::escape($description) ?>"></div>
         </div>
         <p class="editor-help">Có thể định dạng chữ, tạo danh sách và trích dẫn.</p>
+
+        <label for="preview-content-editor">Nội dung đọc thử</label>
+        <textarea id="preview_content" name="preview_content" data-editor-input hidden><?= ViewHelper::escape($previewContent) ?></textarea>
+        <div class="book-description-editor" data-simple-editor>
+            <div class="editor-toolbar" role="toolbar" aria-label="Định dạng nội dung đọc thử">
+                <button type="button" data-editor-command="bold"><strong>B</strong></button>
+                <button type="button" data-editor-command="italic"><em>I</em></button>
+                <button type="button" data-editor-command="underline"><u>U</u></button>
+                <button type="button" data-editor-command="insertUnorderedList">• Danh sách</button>
+                <button type="button" data-editor-command="insertOrderedList">1. Danh sách</button>
+                <button type="button" data-editor-command="formatBlock" data-editor-value="blockquote">Trích dẫn</button>
+                <button type="button" data-editor-command="removeFormat">Xóa định dạng</button>
+            </div>
+            <div id="preview-content-editor" class="editor-content" contenteditable="true" data-editor-content="<?= ViewHelper::escape($previewContent) ?>"></div>
+        </div>
+        <p class="editor-help">Nhập một đoạn nội dung để khách hàng xem trước trước khi mua sách.</p>
 
         <label for="status">Trạng thái</label>
         <select id="status" name="status">

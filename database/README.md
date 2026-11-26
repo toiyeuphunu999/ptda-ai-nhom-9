@@ -4,7 +4,7 @@
 
 1. Tạo database `bookstore_web212`.
 2. Chạy `database/schema.sql`.
-3. Chạy migrations theo thứ tự số: `002_reviews_vouchers.sql`, `003_real_publishers.sql`, `004_payments_customer_tiers_reports.sql`, `005_system_settings.sql`, `006_repair_sales_reports.sql`, `007_repair_customer_tier_utf8.sql`, `008_member_points.sql`, `009_google_login.sql`, `010_email_verification.sql`, `011_password_reset_tokens.sql`, `012_user_contact_address.sql`, `013_order_shipping_email.sql`, `014_customer_management.sql`, `015_user_addresses.sql`, `016_wishlists.sql`.
+3. Chạy migrations theo thứ tự số: `002_reviews_vouchers.sql`, `003_real_publishers.sql`, `004_payments_customer_tiers_reports.sql`, `005_system_settings.sql`, `006_repair_sales_reports.sql`, `007_repair_customer_tier_utf8.sql`, `008_member_points.sql`, `009_google_login.sql`, `010_email_verification.sql`, `011_password_reset_tokens.sql`, `012_user_contact_address.sql`, `013_order_shipping_email.sql`, `014_customer_management.sql`, `015_user_addresses.sql`, `016_wishlists.sql`, `017_order_flow_and_book_preview.sql`.
 4. Chạy `database/seed.sql` ở local mới.
 5. Không chạy seed lại trên dữ liệu thật khi chưa kiểm tra duplicate và tồn kho.
 

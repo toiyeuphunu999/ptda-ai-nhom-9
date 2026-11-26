@@ -59,6 +59,23 @@
     .editor-content ul { @apply list-disc pl-6; }
     .editor-content ol { @apply list-decimal pl-6; }
     .editor-help { @apply mt-1 text-xs font-normal text-slate-500; }
+    .admin-detail-grid, .order-detail-layout { @apply grid grid-cols-1 items-start gap-6; }
+    .admin-status-form { @apply grid min-w-[520px] grid-cols-[minmax(150px,1fr)_minmax(180px,1.3fr)_auto] items-center gap-2; }
+    .admin-status-form input, .admin-status-form select { @apply min-w-0; }
+    .admin-status-form button { @apply whitespace-nowrap; }
+    .admin-status-form + .action-button { @apply mt-2; }
+    .order-actions { @apply grid grid-cols-1 items-start gap-6; }
+    .order-actions .form-card { @apply w-full max-w-none; }
+    .order-detail-products { @apply grid gap-3; }
+    .order-detail-products li, .order-total-row { @apply flex items-center justify-between gap-4 border-b border-slate-200 pb-3; }
+    .order-total-row { @apply mt-5 border-b-0 pt-2 text-lg; }
+    .status-form { @apply mt-5 grid gap-3 border-t border-slate-200 pt-5; }
+    .order-timeline { @apply grid gap-4; }
+    .order-timeline li { @apply grid gap-1 border-l-2 border-slate-300 pl-4; }
+    .order-timeline span { @apply text-sm text-slate-600; }
+    .product-preview { @apply w-full; }
+    .product-preview > div, .product-description > div { @apply max-w-none text-[15px] leading-7 text-slate-700; }
+    .product-preview h2, .product-description h2 { @apply mb-4; }
 }
 
 @media (min-width: 640px) {
@@ -71,6 +88,9 @@
     .category-grid { @apply grid-cols-4; }
     .account-grid { @apply grid-cols-2; }
     .purchase-points { @apply grid-cols-3; }
+    .admin-detail-grid { @apply grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)]; }
+    .order-detail-layout { @apply grid-cols-[minmax(0,1.4fr)_minmax(300px,.6fr)]; }
+    .order-actions { @apply grid-cols-2; }
 }
 
 @media (max-width: 560px) {
@@ -81,4 +101,10 @@
     .saved-address-card .address-form label:nth-of-type(4),
     .saved-address-card .address-form button { @apply col-span-1; }
     .book-grid { @apply gap-4; }
+    .admin-status-form { @apply min-w-[480px]; }
+    .admin-status-form input, .admin-status-form select { @apply text-base; }
+}
+
+@layer legacy {
+    .admin-table td .admin-status-form { @apply grid items-center gap-2; }
 }

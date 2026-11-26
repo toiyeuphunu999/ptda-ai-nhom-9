@@ -7,10 +7,37 @@ use App\Models\SystemSetting;
 use Throwable;
 final class AdminSettingsController extends AdminController
 {
-    public function settings(): void { $this->authorize(); $this->renderSettings(); }
+    public function settings(): void
+    {
+        $this->authorize();
+        $this->renderSettings();
+    }
+
     public function save(): void
     {
-        $this->authorize(); try { Csrf::verify($_POST['_csrf']??null); $user=Session::get('user'); $settings=new SystemSetting($this->database()); $settings->saveMany($settings->dataFromInput($_POST),(int)$user['id']); Session::flash('success','Đã lưu cài đặt hệ thống.'); header('Location: /admin/settings'); } catch(Throwable $e) { http_response_code(422); $this->renderSettings($e->getMessage()); }
+        $this->authorize();
+
+        try {
+            Csrf::verify($_POST['_csrf'] ?? null);
+
+            $currentUser = Session::get('user');
+            $settingsModel = new SystemSetting($this->database());
+            $settings = $settingsModel->dataFromInput($_POST);
+
+            $settingsModel->saveMany($settings, (int)$currentUser['id']);
+
+            Session::flash('success', 'Đã lưu cài đặt hệ thống.');
+            header('Location: /admin/settings');
+        } catch (Throwable $exception) {
+            http_response_code(422);
+            $this->renderSettings($exception->getMessage());
+        }
     }
-    private function renderSettings(?string $error=null): void { $settings=new SystemSetting($this->database()); $this->view->render('admin/settings',$settings->adminViewData($error),'admin'); }
+
+    private function renderSettings(?string $error = null): void
+    {
+        $settingsModel = new SystemSetting($this->database());
+        $viewData = $settingsModel->adminViewData($error);
+        $this->view->render('admin/settings', $viewData, 'admin');
+    }
 }

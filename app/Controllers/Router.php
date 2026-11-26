@@ -30,7 +30,16 @@ final class Router
                 continue;
             }
 
-            $regex = preg_replace('/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/', '(?P<$1>[a-zA-Z0-9-]+)', $pattern);
+            $regex = preg_replace_callback(
+                '/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/',
+                static function (array $match): string {
+                    $name = $match[1];
+                    return preg_match('/(?:^|_)id$/', $name) === 1
+                        ? '(?P<' . $name . '>[1-9][0-9]*)'
+                        : '(?P<' . $name . '>[a-zA-Z0-9-]+)';
+                },
+                $pattern
+            );
             if (preg_match('#^' . $regex . '$#', $path, $matches) === 1) {
                 $params = array();
                 foreach ($matches as $key => $value) {

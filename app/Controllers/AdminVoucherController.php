@@ -24,7 +24,8 @@ final class AdminVoucherController extends AdminController
             if (($_POST['usage_limit'] ?? '') !== '') {
                 $usageLimit = (int)$_POST['usage_limit'];
             }
-            (new Voucher($this->database()))->create(
+            $voucherModel = new Voucher($this->database());
+            $voucherModel->create(
                 (string)($_POST['code'] ?? ''),
                 (string)($_POST['type'] ?? ''),
                 (int)($_POST['value'] ?? 0),
@@ -39,7 +40,8 @@ final class AdminVoucherController extends AdminController
             http_response_code(422);
             $data = array('title' => 'Mã giảm giá');
             $data['error'] = $exception->getMessage();
-            $data['vouchers'] = (new Voucher($this->database()))->allForAdmin();
+            $voucherModel = new Voucher($this->database());
+            $data['vouchers'] = $voucherModel->allForAdmin();
             $this->view->render('admin/vouchers', $data, 'admin');
         }
     }

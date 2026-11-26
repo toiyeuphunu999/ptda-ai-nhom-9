@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS books (
     price INT UNSIGNED NOT NULL DEFAULT 0,
     original_price INT UNSIGNED NULL,
     description TEXT NULL,
+    preview_content TEXT NULL,
     cover VARCHAR(255) NULL,
     stock_quantity INT UNSIGNED NOT NULL DEFAULT 0,
     status ENUM('draft', 'published', 'hidden') NOT NULL DEFAULT 'draft',
@@ -115,7 +116,7 @@ CREATE TABLE IF NOT EXISTS orders (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED NOT NULL,
     order_code VARCHAR(32) NOT NULL UNIQUE,
-    status ENUM('pending', 'confirmed', 'shipping', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
+    status ENUM('pending', 'confirmed', 'shipping', 'delivered', 'completed', 'cancel_requested', 'return_requested', 'return_shipping', 'returned', 'return_rejected', 'cancelled') NOT NULL DEFAULT 'pending',
     subtotal INT UNSIGNED NOT NULL DEFAULT 0,
     shipping_fee INT UNSIGNED NOT NULL DEFAULT 0,
     discount_amount INT UNSIGNED NOT NULL DEFAULT 0,
@@ -125,6 +126,13 @@ CREATE TABLE IF NOT EXISTS orders (
     shipping_email VARCHAR(190) NOT NULL,
     shipping_phone VARCHAR(30) NOT NULL,
     shipping_address VARCHAR(255) NOT NULL,
+    cancel_reason TEXT NULL,
+    cancel_requested_at DATETIME NULL,
+    return_reason TEXT NULL,
+    return_image VARCHAR(255) NULL,
+    return_requested_at DATETIME NULL,
+    return_review_reason TEXT NULL,
+    return_reviewed_at DATETIME NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id)
@@ -151,8 +159,8 @@ CREATE TABLE IF NOT EXISTS payments (
 CREATE TABLE IF NOT EXISTS order_status_history (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     order_id INT UNSIGNED NOT NULL,
-    from_status ENUM('pending', 'confirmed', 'shipping', 'completed', 'cancelled') NULL,
-    to_status ENUM('pending', 'confirmed', 'shipping', 'completed', 'cancelled') NOT NULL,
+    from_status ENUM('pending', 'confirmed', 'shipping', 'delivered', 'completed', 'cancel_requested', 'return_requested', 'return_shipping', 'returned', 'return_rejected', 'cancelled') NULL,
+    to_status ENUM('pending', 'confirmed', 'shipping', 'delivered', 'completed', 'cancel_requested', 'return_requested', 'return_shipping', 'returned', 'return_rejected', 'cancelled') NOT NULL,
     changed_by INT UNSIGNED NULL,
     note VARCHAR(255) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -273,7 +281,7 @@ SELECT
     COALESCE(SUM(discount_amount), 0) AS total_discount,
     COALESCE(SUM(total), 0) AS net_revenue
 FROM orders
-WHERE status IN ('confirmed', 'shipping', 'completed')
+WHERE status = 'completed'
 GROUP BY DATE(created_at);
 
 CREATE OR REPLACE VIEW v_book_sales_report AS
@@ -288,7 +296,7 @@ FROM order_items oi
 INNER JOIN orders o ON o.id = oi.order_id
 INNER JOIN books b ON b.id = oi.book_id
 INNER JOIN categories c ON c.id = b.category_id
-WHERE o.status IN ('confirmed', 'shipping', 'completed')
+WHERE o.status = 'completed'
 GROUP BY oi.book_id, oi.book_title, b.author, c.name;
 
 CREATE OR REPLACE VIEW v_customer_sales_report AS
@@ -298,8 +306,8 @@ SELECT
     u.email,
     ct.code AS customer_type,
     ct.name AS customer_tier,
-    COUNT(DISTINCT CASE WHEN o.status IN ('confirmed', 'shipping', 'completed') THEN o.id END) AS order_count,
-    COALESCE(SUM(CASE WHEN o.status IN ('confirmed', 'shipping', 'completed') THEN o.total ELSE 0 END), 0) AS total_spent,
+    COUNT(DISTINCT CASE WHEN o.status = 'completed' THEN o.id END) AS order_count,
+    COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.total ELSE 0 END), 0) AS total_spent,
     MAX(o.created_at) AS last_order_at
 FROM users u
 LEFT JOIN customer_tiers ct ON ct.id = u.customer_tier_id
