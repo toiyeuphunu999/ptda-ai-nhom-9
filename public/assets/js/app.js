@@ -119,45 +119,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (icon) icon.textContent = shouldShow ? 'visibility_off' : 'visibility';
   });
 
-  const lazyLists = document.querySelectorAll('.book-grid, .review-list, .report-history, .admin-table tbody, .order-products');
-  const lazyBatchSize = 8;
-  const lazyState = [];
-
-  lazyLists.forEach((list) => {
+  document.querySelectorAll('[data-show-more-list]').forEach((list) => {
+    const listId = list.id;
+    const showMoreButton = document.querySelector(`[data-show-more-target="${listId}"]`);
     const items = Array.from(list.children);
-    if (items.length <= lazyBatchSize) return;
+    const step = Number(list.getAttribute('data-show-more-step')) || 8;
 
-    const state = { list, items, shown: 0 };
+    if (!showMoreButton || !listId || items.length <= step) {
+      return;
+    }
+
+    let visibleCount = 0;
     items.forEach((item) => {
       item.hidden = true;
       item.classList.add('lazy-item');
     });
-    lazyState.push(state);
 
-    const revealNext = () => {
-      const next = state.items.slice(state.shown, state.shown + lazyBatchSize);
-      next.forEach((item) => {
+    const showNextItems = () => {
+      const nextItems = items.slice(visibleCount, visibleCount + step);
+      nextItems.forEach((item) => {
         item.hidden = false;
         item.classList.add('is-visible');
       });
-      state.shown += next.length;
+      visibleCount += nextItems.length;
+
+      if (visibleCount >= items.length) {
+        showMoreButton.hidden = true;
+      }
     };
 
-    state.revealNext = revealNext;
-    revealNext();
+    showMoreButton.addEventListener('click', showNextItems);
+    showMoreButton.hidden = false;
+    showNextItems();
   });
-
-  const revealListsNearViewport = () => {
-    lazyState.forEach((state) => {
-      if (state.shown >= state.items.length) return;
-      const distanceToViewport = state.list.getBoundingClientRect().bottom - window.innerHeight;
-      if (distanceToViewport < 420) state.revealNext();
-    });
-  };
-
-  window.addEventListener('scroll', revealListsNearViewport, { passive: true });
-  window.addEventListener('resize', revealListsNearViewport);
-  revealListsNearViewport();
 
   document.querySelectorAll('.admin-table select[name="status"]').forEach((select) => {
     if (select.value !== 'completed') return;

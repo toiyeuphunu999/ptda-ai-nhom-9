@@ -76,6 +76,7 @@
     .product-preview { @apply w-full; }
     .product-preview > div, .product-description > div { @apply max-w-none text-[15px] leading-7 text-slate-700; }
     .product-preview h2, .product-description h2 { @apply mb-4; }
+    .show-more-button { @apply mx-auto mt-5 block; }
 }
 
 @media (min-width: 640px) {
