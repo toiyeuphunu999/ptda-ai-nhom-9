@@ -87,10 +87,10 @@ final class SystemSetting
 
     public function saveMany(array $settings, int $updatedBy): void
     {
-        $pdo = $this->database->connection();
-        $pdo->beginTransaction();
+        $databaseConnection = $this->database->connection();
+        $databaseConnection->beginTransaction();
         try {
-            $statement = $pdo->prepare('INSERT INTO system_settings (setting_key, setting_value, is_secret, updated_by) VALUES (:setting_key, :setting_value, :is_secret, :updated_by) ON DUPLICATE KEY UPDATE setting_value = :updated_value, is_secret = :updated_secret, updated_by = :updated_by_update');
+            $statement = $databaseConnection->prepare('INSERT INTO system_settings (setting_key, setting_value, is_secret, updated_by) VALUES (:setting_key, :setting_value, :is_secret, :updated_by) ON DUPLICATE KEY UPDATE setting_value = :updated_value, is_secret = :updated_secret, updated_by = :updated_by_update');
             foreach ($settings as $key => $data) {
                 $value = (string)($data['value'] ?? '');
                 $secret = (bool)($data['secret'] ?? false);
@@ -99,9 +99,9 @@ final class SystemSetting
                 $stored = $secret ? $this->encrypt($value) : $value;
                 $statement->execute(['setting_key'=>$key,'setting_value'=>$stored,'is_secret'=>$secret?1:0,'updated_by'=>$updatedBy,'updated_value'=>$stored,'updated_secret'=>$secret?1:0,'updated_by_update'=>$updatedBy]);
             }
-            $pdo->commit();
+            $databaseConnection->commit();
         } catch (\Throwable $exception) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
+            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
             throw $exception;
         }
     }

@@ -53,7 +53,16 @@ final class Auth
         if (!(new User($this->database))->resetPassword($token, $password)) throw new RuntimeException('Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
     }
 
-    public function verifyEmail(string $token): bool { return trim($token) !== '' && (new User($this->database))->verifyEmail($token); }
+    public function verifyEmail(string $token): bool
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return false;
+        }
+
+        $userModel = new User($this->database);
+        return $userModel->verifyEmail($token);
+    }
 
     public function resendVerification(string $email): void
     {
@@ -113,19 +122,61 @@ final class Auth
 
     private function googleRequest(string $url, array $fields): array
     {
-        $handle = curl_init($url); if ($handle === false) throw new RuntimeException('Không khởi tạo được kết nối Google.');
-        curl_setopt_array($handle, [CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>http_build_query($fields),CURLOPT_HTTPHEADER=>['Content-Type: application/x-www-form-urlencoded'],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
-        $body=curl_exec($handle); $error=curl_error($handle); curl_close($handle);
-        if ($body === false || $error !== '') throw new RuntimeException('Không thể kết nối Google.');
-        $data=json_decode((string)$body,true); if (!is_array($data)) throw new RuntimeException('Google trả về dữ liệu không hợp lệ.'); return $data;
+        $curlHandle = curl_init($url);
+        if ($curlHandle === false) {
+            throw new RuntimeException('Không khởi tạo được kết nối Google.');
+        }
+
+        curl_setopt_array($curlHandle, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query($fields),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded'],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+        ]);
+
+        $responseBody = curl_exec($curlHandle);
+        $curlError = curl_error($curlHandle);
+        curl_close($curlHandle);
+
+        if ($responseBody === false || $curlError !== '') {
+            throw new RuntimeException('Không thể kết nối Google.');
+        }
+
+        $responseData = json_decode((string)$responseBody, true);
+        if (!is_array($responseData)) {
+            throw new RuntimeException('Google trả về dữ liệu không hợp lệ.');
+        }
+
+        return $responseData;
     }
 
     private function googleProfile(string $accessToken): array
     {
-        $handle=curl_init('https://openidconnect.googleapis.com/v1/userinfo'); if ($handle === false) throw new RuntimeException('Không khởi tạo được kết nối Google.');
-        curl_setopt_array($handle,[CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$accessToken],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
-        $body=curl_exec($handle); $error=curl_error($handle); curl_close($handle);
-        if ($body === false || $error !== '') throw new RuntimeException('Không thể lấy thông tin tài khoản Google.');
-        $profile=json_decode((string)$body,true); if (!is_array($profile)) throw new RuntimeException('Thông tin tài khoản Google không hợp lệ.'); return $profile;
+        $curlHandle = curl_init('https://openidconnect.googleapis.com/v1/userinfo');
+        if ($curlHandle === false) {
+            throw new RuntimeException('Không khởi tạo được kết nối Google.');
+        }
+
+        curl_setopt_array($curlHandle, [
+            CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $accessToken],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+        ]);
+
+        $responseBody = curl_exec($curlHandle);
+        $curlError = curl_error($curlHandle);
+        curl_close($curlHandle);
+
+        if ($responseBody === false || $curlError !== '') {
+            throw new RuntimeException('Không thể lấy thông tin tài khoản Google.');
+        }
+
+        $profile = json_decode((string)$responseBody, true);
+        if (!is_array($profile)) {
+            throw new RuntimeException('Thông tin tài khoản Google không hợp lệ.');
+        }
+
+        return $profile;
     }
 }

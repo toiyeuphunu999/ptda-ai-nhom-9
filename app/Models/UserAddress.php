@@ -29,16 +29,21 @@ final class UserAddress
     public function create(int $userId, string $label, string $name, string $phone, string $address, bool $isDefault = false): int
     {
         [$label, $name, $phone, $address] = $this->validate($label, $name, $phone, $address);
-        $pdo = $this->database->connection();
+        $databaseConnection = $this->database->connection();
         $isDefault = $isDefault || !$this->allForUser($userId);
-        $pdo->beginTransaction();
+        $databaseConnection->beginTransaction();
         try {
             if ($isDefault) $this->clearDefault($userId);
-            $query = $pdo->prepare('INSERT INTO user_addresses (user_id, label, recipient_name, phone, address, is_default) VALUES (:user_id, :label, :recipient_name, :phone, :address, :is_default)');
+            $query = $databaseConnection->prepare('INSERT INTO user_addresses (user_id, label, recipient_name, phone, address, is_default) VALUES (:user_id, :label, :recipient_name, :phone, :address, :is_default)');
             $query->execute(['user_id'=>$userId, 'label'=>$label, 'recipient_name'=>$name, 'phone'=>$phone, 'address'=>$address, 'is_default'=>$isDefault ? 1 : 0]);
-            $id = (int)$pdo->lastInsertId(); $pdo->commit(); return $id;
+            $addressId = (int)$databaseConnection->lastInsertId();
+            $databaseConnection->commit();
+            return $addressId;
         } catch (\Throwable $exception) {
-            if ($pdo->inTransaction()) $pdo->rollBack(); throw $exception;
+            if ($databaseConnection->inTransaction()) {
+                $databaseConnection->rollBack();
+            }
+            throw $exception;
         }
     }
 
@@ -46,35 +51,60 @@ final class UserAddress
     {
         [$label, $name, $phone, $address] = $this->validate($label, $name, $phone, $address);
         $query = $this->database->connection()->prepare('UPDATE user_addresses SET label = :label, recipient_name = :recipient_name, phone = :phone, address = :address WHERE id = :id AND user_id = :user_id');
-        $query->execute(['id'=>$id, 'user_id'=>$userId, 'label'=>$label, 'recipient_name'=>$name, 'phone'=>$phone, 'address'=>$address]);
-        if ($query->rowCount() === 0 && !$this->findForUser($id, $userId)) throw new RuntimeException('Không tìm thấy địa chỉ cần cập nhật.');
+        $query->execute([
+            'id' => $id,
+            'user_id' => $userId,
+            'label' => $label,
+            'recipient_name' => $name,
+            'phone' => $phone,
+            'address' => $address,
+        ]);
+        if ($query->rowCount() === 0 && !$this->findForUser($id, $userId)) {
+            throw new RuntimeException('Không tìm thấy địa chỉ cần cập nhật.');
+        }
     }
 
     public function setDefault(int $id, int $userId): void
     {
-        if (!$this->findForUser($id, $userId)) throw new RuntimeException('Không tìm thấy địa chỉ cần chọn.');
-        $pdo = $this->database->connection(); $pdo->beginTransaction();
+        if (!$this->findForUser($id, $userId)) {
+            throw new RuntimeException('Không tìm thấy địa chỉ cần chọn.');
+        }
+        $databaseConnection = $this->database->connection();
+        $databaseConnection->beginTransaction();
         try {
             $this->clearDefault($userId);
-            $query = $pdo->prepare('UPDATE user_addresses SET is_default = 1 WHERE id = :id AND user_id = :user_id');
-            $query->execute(['id'=>$id, 'user_id'=>$userId]); $pdo->commit();
-        } catch (\Throwable $exception) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $exception; }
+            $query = $databaseConnection->prepare('UPDATE user_addresses SET is_default = 1 WHERE id = :id AND user_id = :user_id');
+            $query->execute(['id' => $id, 'user_id' => $userId]);
+            $databaseConnection->commit();
+        } catch (\Throwable $exception) {
+            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
+            throw $exception;
+        }
     }
 
     public function delete(int $id, int $userId): void
     {
         $address = $this->findForUser($id, $userId);
         if (!$address) throw new RuntimeException('Không tìm thấy địa chỉ cần xóa.');
-        $pdo = $this->database->connection(); $pdo->beginTransaction();
+        $databaseConnection = $this->database->connection();
+        $databaseConnection->beginTransaction();
         try {
-            $query = $pdo->prepare('DELETE FROM user_addresses WHERE id = :id AND user_id = :user_id');
+            $query = $databaseConnection->prepare('DELETE FROM user_addresses WHERE id = :id AND user_id = :user_id');
             $query->execute(['id'=>$id, 'user_id'=>$userId]);
             if ((int)$address['is_default'] === 1) {
-                $next = $this->allForUser($userId)[0] ?? null;
-                if ($next) { $this->clearDefault($userId); $set = $pdo->prepare('UPDATE user_addresses SET is_default = 1 WHERE id = :id'); $set->execute(['id'=>(int)$next['id']]); }
+                $remainingAddresses = $this->allForUser($userId);
+                $nextAddress = $remainingAddresses[0] ?? null;
+                if ($nextAddress) {
+                    $this->clearDefault($userId);
+                    $setDefault = $databaseConnection->prepare('UPDATE user_addresses SET is_default = 1 WHERE id = :id');
+                    $setDefault->execute(['id' => (int)$nextAddress['id']]);
+                }
             }
-            $pdo->commit();
-        } catch (\Throwable $exception) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $exception; }
+            $databaseConnection->commit();
+        } catch (\Throwable $exception) {
+            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
+            throw $exception;
+        }
     }
 
     private function clearDefault(int $userId): void
@@ -85,7 +115,10 @@ final class UserAddress
 
     private function validate(string $label, string $name, string $phone, string $address): array
     {
-        $label=trim($label); $name=trim($name); $phone=trim($phone); $address=trim($address);
+        $label = trim($label);
+        $name = trim($name);
+        $phone = trim($phone);
+        $address = trim($address);
         if ($label === '' || mb_strlen($label) > 50) throw new RuntimeException('Tên địa chỉ không hợp lệ.');
         if ($name === '' || mb_strlen($name) > 120) throw new RuntimeException('Họ tên người nhận không hợp lệ.');
         if (!preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) throw new RuntimeException('Số điện thoại không hợp lệ.');

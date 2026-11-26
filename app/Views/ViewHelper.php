@@ -38,7 +38,9 @@ final class ViewHelper
         $value = strip_tags($value, $allowedTags);
         $value = preg_replace_callback(
             '/<([a-z][a-z0-9]*)\b[^>]*>/i',
-            static fn (array $match): string => '<' . strtolower($match[1]) . '>',
+            function (array $match): string {
+                return '<' . strtolower($match[1]) . '>';
+            },
             $value
         );
         return is_string($value) ? $value : '';

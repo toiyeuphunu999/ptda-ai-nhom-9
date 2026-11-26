@@ -24,8 +24,17 @@ final class WishlistController extends Controller
         ]);
     }
 
-    public function add(string $id): void { $this->change('add', (int)$id); }
-    public function remove(string $id): void { $this->change('remove', (int)$id); }
+    public function add(string $id): void
+    {
+        $bookId = (int)$id;
+        $this->change('add', $bookId);
+    }
+
+    public function remove(string $id): void
+    {
+        $bookId = (int)$id;
+        $this->change('remove', $bookId);
+    }
 
     private function change(string $action, int $bookId): void
     {
@@ -35,12 +44,19 @@ final class WishlistController extends Controller
         $redirect = $action === 'remove' ? '/wishlist' : '/books';
         try {
             Csrf::verify($_POST['_csrf'] ?? null);
-            $book = (new Book($this->database()))->findById($bookId);
+            $bookModel = new Book($this->database());
+            $book = $bookModel->findById($bookId);
             if (!$book || $book['status'] !== 'published') throw new \RuntimeException('Sách không tồn tại hoặc chưa được bán.');
             if ($action === 'add') $redirect = '/books/' . rawurlencode((string)$book['slug']);
-            $wishlist = new Wishlist($this->database());
-            if ($action === 'add') { $wishlist->add((int)$user['id'], $bookId); Session::flash('success', 'Đã thêm sách vào danh sách yêu thích.'); }
-            else { $wishlist->remove((int)$user['id'], $bookId); Session::flash('success', 'Đã xóa sách khỏi danh sách yêu thích.'); }
+            $wishlistModel = new Wishlist($this->database());
+            $userId = (int)$user['id'];
+            if ($action === 'add') {
+                $wishlistModel->add($userId, $bookId);
+                Session::flash('success', 'Đã thêm sách vào danh sách yêu thích.');
+            } else {
+                $wishlistModel->remove($userId, $bookId);
+                Session::flash('success', 'Đã xóa sách khỏi danh sách yêu thích.');
+            }
         } catch (Throwable $exception) { Session::flash('failure', $exception->getMessage()); }
         header('Location: ' . $redirect);
     }

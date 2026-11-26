@@ -44,13 +44,13 @@ final class Order
         if (!in_array($paymentMethod, ['cod', 'bank_transfer'], true)) {
             throw new RuntimeException('Phương thức thanh toán không hợp lệ.');
         }
-        $pdo = $this->database->connection();
-        $pdo->beginTransaction();
+        $databaseConnection = $this->database->connection();
+        $databaseConnection->beginTransaction();
         try {
             $subtotal = 0;
             $lockedItems = [];
             foreach ($items as $item) {
-                $statement = $pdo->prepare('SELECT * FROM books WHERE id = :id AND status = :status FOR UPDATE');
+                $statement = $databaseConnection->prepare('SELECT * FROM books WHERE id = :id AND status = :status FOR UPDATE');
                 $statement->execute(['id' => (int)$item['book_id'], 'status' => 'published']);
                 $book = $statement->fetch();
                 $quantity = (int)$item['quantity'];
@@ -68,18 +68,18 @@ final class Order
             $discount = 0;
             $voucherCode = null;
             if ($voucherId !== null) {
-                $voucherStatement = $pdo->prepare('SELECT * FROM vouchers WHERE id = :id FOR UPDATE');
+                $voucherStatement = $databaseConnection->prepare('SELECT * FROM vouchers WHERE id = :id FOR UPDATE');
                 $voucherStatement->execute(['id' => $voucherId]);
                 $voucher = $voucherStatement->fetch();
                 if (!$voucher) throw new RuntimeException('Mã giảm giá không tồn tại.');
                 $discount = Voucher::discountFor($voucher, $subtotal);
                 $voucherCode = $voucher['code'];
-                $pdo->prepare('UPDATE vouchers SET used_count = used_count + 1 WHERE id = :id')->execute(['id' => $voucherId]);
+                $databaseConnection->prepare('UPDATE vouchers SET used_count = used_count + 1 WHERE id = :id')->execute(['id' => $voucherId]);
             }
             $total = max(0, $subtotal - $discount);
 
             $orderCode = 'MB' . date('ymdHis') . strtoupper(bin2hex(random_bytes(3)));
-            $orderStatement = $pdo->prepare(
+            $orderStatement = $databaseConnection->prepare(
                 'INSERT INTO orders (user_id, order_code, status, subtotal, shipping_fee, discount_amount, voucher_code, total, shipping_name, shipping_email, shipping_phone, shipping_address) '
                 . 'VALUES (:user_id, :order_code, :status, :subtotal, :shipping_fee, :discount_amount, :voucher_code, :total, :shipping_name, :shipping_email, :shipping_phone, :shipping_address)'
             );
@@ -88,8 +88,8 @@ final class Order
                 'subtotal' => $subtotal, 'shipping_fee' => 0, 'discount_amount' => $discount, 'voucher_code' => $voucherCode, 'total' => $total,
                 'shipping_name' => $name, 'shipping_email' => $email, 'shipping_phone' => $phone, 'shipping_address' => $address,
             ]);
-            $orderId = (int)$pdo->lastInsertId();
-            $pdo->prepare(
+            $orderId = (int)$databaseConnection->lastInsertId();
+            $databaseConnection->prepare(
                 'INSERT INTO payments (order_id, method, status, amount, provider) VALUES (:order_id, :method, :status, :amount, :provider)'
             )->execute([
                 'order_id' => $orderId,
@@ -98,14 +98,14 @@ final class Order
                 'amount' => $total,
                 'provider' => $paymentMethod === 'bank_transfer' ? 'payos' : null,
             ]);
-            $pdo->prepare(
+            $databaseConnection->prepare(
                 'INSERT INTO order_status_history (order_id, from_status, to_status, note) VALUES (:order_id, NULL, :status, :note)'
             )->execute(['order_id' => $orderId, 'status' => 'pending', 'note' => 'Đơn hàng được tạo, chờ xác nhận.']);
-            $itemStatement = $pdo->prepare(
+            $itemStatement = $databaseConnection->prepare(
                 'INSERT INTO order_items (order_id, book_id, book_title, unit_price, quantity, line_total) '
                 . 'VALUES (:order_id, :book_id, :book_title, :unit_price, :quantity, :line_total)'
             );
-            $stockStatement = $pdo->prepare('UPDATE books SET stock_quantity = stock_quantity - :quantity WHERE id = :id');
+            $stockStatement = $databaseConnection->prepare('UPDATE books SET stock_quantity = stock_quantity - :quantity WHERE id = :id');
             foreach ($lockedItems as $item) {
                 $book = $item['book'];
                 $itemStatement->execute([
@@ -114,10 +114,10 @@ final class Order
                 ]);
                 $stockStatement->execute(['quantity' => $item['quantity'], 'id' => $book['id']]);
             }
-            $pdo->commit();
+            $databaseConnection->commit();
             return $orderCode;
         } catch (\Throwable $exception) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
+            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
             throw $exception;
         }
     }
@@ -146,19 +146,19 @@ final class Order
         } elseif ($status === 'PROCESSING') {
             $mappedStatus = 'processing';
         }
-        $pdo = $this->database->connection();
-        $pdo->beginTransaction();
+        $databaseConnection = $this->database->connection();
+        $databaseConnection->beginTransaction();
         $changedOrderStatus = null;
         try {
-            $orderStatement = $pdo->prepare('SELECT user_id, status FROM orders WHERE id = :order_id FOR UPDATE');
+            $orderStatement = $databaseConnection->prepare('SELECT user_id, status FROM orders WHERE id = :order_id FOR UPDATE');
             $orderStatement->execute(['order_id' => $orderId]);
             $currentOrder = $orderStatement->fetch();
             if (!$currentOrder) throw new RuntimeException('Không tìm thấy đơn hàng.');
-            $payment = $pdo->prepare('SELECT amount FROM payments WHERE order_id = :order_id AND method = \'bank_transfer\' FOR UPDATE');
+            $payment = $databaseConnection->prepare('SELECT amount FROM payments WHERE order_id = :order_id AND method = \'bank_transfer\' FOR UPDATE');
             $payment->execute(['order_id' => $orderId]);
             $existing = $payment->fetch();
             if (!$existing || (int)$existing['amount'] !== $amount) throw new RuntimeException('Số tiền thanh toán không khớp.');
-            $update = $pdo->prepare('UPDATE payments SET status = :status, provider = \'payos\', transaction_code = COALESCE(:transaction_code, transaction_code), provider_response = :provider_response, paid_at = CASE WHEN :paid = 1 THEN COALESCE(paid_at, NOW()) ELSE paid_at END WHERE order_id = :order_id');
+            $update = $databaseConnection->prepare('UPDATE payments SET status = :status, provider = \'payos\', transaction_code = COALESCE(:transaction_code, transaction_code), provider_response = :provider_response, paid_at = CASE WHEN :paid = 1 THEN COALESCE(paid_at, NOW()) ELSE paid_at END WHERE order_id = :order_id');
             $update->execute([
                 'status' => $mappedStatus,
                 'transaction_code' => $payload['data']['reference'] ?? ($payload['data']['paymentLinkId'] ?? null),
@@ -172,13 +172,13 @@ final class Order
                 if ($currentOrder['status'] === 'pending') $changedOrderStatus = 'cancelled';
             }
             if ($changedOrderStatus !== null) {
-                $pdo->prepare('UPDATE orders SET status = :status WHERE id = :id')->execute(['status' => $changedOrderStatus, 'id' => $orderId]);
-                $pdo->prepare('INSERT INTO order_status_history (order_id, from_status, to_status, changed_by, note) VALUES (:order_id, :from_status, :to_status, NULL, :note)')->execute(['order_id' => $orderId, 'from_status' => $currentOrder['status'], 'to_status' => $changedOrderStatus, 'note' => 'PayOS cập nhật thanh toán.']);
+                $databaseConnection->prepare('UPDATE orders SET status = :status WHERE id = :id')->execute(['status' => $changedOrderStatus, 'id' => $orderId]);
+                $databaseConnection->prepare('INSERT INTO order_status_history (order_id, from_status, to_status, changed_by, note) VALUES (:order_id, :from_status, :to_status, NULL, :note)')->execute(['order_id' => $orderId, 'from_status' => $currentOrder['status'], 'to_status' => $changedOrderStatus, 'note' => 'PayOS cập nhật thanh toán.']);
             }
-            $pdo->commit();
+            $databaseConnection->commit();
             if ($changedOrderStatus !== null) $this->sendStatusEmail($orderId, $changedOrderStatus, 'PayOS cập nhật thanh toán.');
         } catch (\Throwable $exception) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
+            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
             throw $exception;
         }
     }
@@ -291,8 +291,8 @@ final class Order
 
     public function businessReports(): array
     {
-        $pdo = $this->database->connection();
-        $summary = $pdo->query(
+        $databaseConnection = $this->database->connection();
+        $summary = $databaseConnection->query(
             "SELECT
                 COALESCE(SUM(total), 0) AS revenue,
                 COUNT(*) AS orders,
@@ -300,7 +300,7 @@ final class Order
              FROM orders
              WHERE status = 'completed'"
         )->fetch() ?: [];
-        $payments = $pdo->query(
+        $payments = $databaseConnection->query(
             "SELECT COALESCE(p.method, 'cod') AS payment_method,
                     COALESCE(p.status, 'pending') AS payment_status,
                     COUNT(*) AS transactions, COALESCE(SUM(o.total), 0) AS amount
@@ -309,7 +309,7 @@ final class Order
              GROUP BY COALESCE(p.method, 'cod'), COALESCE(p.status, 'pending')
              ORDER BY transactions DESC"
         )->fetchAll();
-        $daily = $pdo->query(
+        $daily = $databaseConnection->query(
             "SELECT DATE(created_at) AS sale_date, COUNT(*) AS order_count,
                     COALESCE(SUM(subtotal), 0) AS gross_revenue,
                     COALESCE(SUM(discount_amount), 0) AS total_discount,
@@ -318,7 +318,7 @@ final class Order
              WHERE status = 'completed'
              GROUP BY DATE(created_at) ORDER BY sale_date DESC LIMIT 30"
         )->fetchAll();
-        $books = $pdo->query(
+        $books = $databaseConnection->query(
             "SELECT oi.book_id, oi.book_title, b.author, c.name AS category_name,
                     SUM(oi.quantity) AS units_sold, SUM(oi.line_total) AS revenue
              FROM order_items oi
@@ -329,7 +329,7 @@ final class Order
              GROUP BY oi.book_id, oi.book_title, b.author, c.name
              ORDER BY revenue DESC, units_sold DESC LIMIT 10"
         )->fetchAll();
-        $customers = $pdo->query(
+        $customers = $databaseConnection->query(
             "SELECT u.id AS customer_id, u.name, u.email,
                     ct.code AS customer_type, ct.name AS customer_tier,
                     COUNT(DISTINCT CASE WHEN o.status = 'completed' THEN o.id END) AS order_count,
@@ -342,7 +342,7 @@ final class Order
              GROUP BY u.id, u.name, u.email, ct.code, ct.name
              ORDER BY total_spent DESC, order_count DESC"
         )->fetchAll();
-        $history = $pdo->query(
+        $history = $databaseConnection->query(
             'SELECT order_status_history.*, orders.order_code, users.name AS changed_by_name
              FROM order_status_history
              INNER JOIN orders ON orders.id = order_status_history.order_id
@@ -369,12 +369,12 @@ final class Order
 
     public function dashboardMetrics(): array
     {
-        $pdo = $this->database->connection();
-        $summary = $pdo->query("SELECT COALESCE(SUM(total), 0) AS revenue, COUNT(*) AS orders FROM orders WHERE status = 'completed'")->fetch() ?: [];
-        $daily = $pdo->query("SELECT DATE(created_at) AS period, SUM(total) AS revenue, COUNT(*) AS orders FROM orders WHERE status = 'completed' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) GROUP BY DATE(created_at) ORDER BY period DESC")->fetchAll();
-        $monthly = $pdo->query("SELECT DATE_FORMAT(created_at, '%Y-%m') AS period, SUM(total) AS revenue, COUNT(*) AS orders FROM orders WHERE status = 'completed' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH) GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY period DESC")->fetchAll();
-        $topBooks = $pdo->query("SELECT order_items.book_title, SUM(order_items.quantity) AS quantity, SUM(order_items.line_total) AS revenue FROM order_items INNER JOIN orders ON orders.id = order_items.order_id WHERE orders.status = 'completed' GROUP BY order_items.book_id, order_items.book_title ORDER BY quantity DESC, revenue DESC LIMIT 10")->fetchAll();
-        $recentOrders = $pdo->query("SELECT orders.order_code, orders.total, orders.status, orders.created_at, users.name AS customer_name FROM orders INNER JOIN users ON users.id = orders.user_id ORDER BY orders.created_at DESC LIMIT 8")->fetchAll();
+        $databaseConnection = $this->database->connection();
+        $summary = $databaseConnection->query("SELECT COALESCE(SUM(total), 0) AS revenue, COUNT(*) AS orders FROM orders WHERE status = 'completed'")->fetch() ?: [];
+        $daily = $databaseConnection->query("SELECT DATE(created_at) AS period, SUM(total) AS revenue, COUNT(*) AS orders FROM orders WHERE status = 'completed' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) GROUP BY DATE(created_at) ORDER BY period DESC")->fetchAll();
+        $monthly = $databaseConnection->query("SELECT DATE_FORMAT(created_at, '%Y-%m') AS period, SUM(total) AS revenue, COUNT(*) AS orders FROM orders WHERE status = 'completed' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH) GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY period DESC")->fetchAll();
+        $topBooks = $databaseConnection->query("SELECT order_items.book_title, SUM(order_items.quantity) AS quantity, SUM(order_items.line_total) AS revenue FROM order_items INNER JOIN orders ON orders.id = order_items.order_id WHERE orders.status = 'completed' GROUP BY order_items.book_id, order_items.book_title ORDER BY quantity DESC, revenue DESC LIMIT 10")->fetchAll();
+        $recentOrders = $databaseConnection->query("SELECT orders.order_code, orders.total, orders.status, orders.created_at, users.name AS customer_name FROM orders INNER JOIN users ON users.id = orders.user_id ORDER BY orders.created_at DESC LIMIT 8")->fetchAll();
         return ['revenue'=>(int)($summary['revenue'] ?? 0), 'orders'=>(int)($summary['orders'] ?? 0), 'daily'=>$daily, 'monthly'=>$monthly, 'topBooks'=>$topBooks, 'recentOrders'=>$recentOrders];
     }
 
@@ -455,45 +455,45 @@ final class Order
     {
         $allowed = ['pending', 'confirmed', 'shipping', 'delivered', 'completed', 'cancel_requested', 'return_requested', 'return_shipping', 'returned', 'return_rejected', 'cancelled'];
         if (!in_array($status, $allowed, true)) throw new RuntimeException('Trạng thái đơn hàng không hợp lệ.');
-        $pdo = $this->database->connection();
-        $pdo->beginTransaction();
+        $databaseConnection = $this->database->connection();
+        $databaseConnection->beginTransaction();
         try {
-            $statement = $pdo->prepare('SELECT orders.*, COALESCE(payments.method, \'cod\') AS payment_method, COALESCE(payments.status, \'pending\') AS payment_status FROM orders LEFT JOIN payments ON payments.order_id = orders.id WHERE orders.id = :id FOR UPDATE');
+            $statement = $databaseConnection->prepare('SELECT orders.*, COALESCE(payments.method, \'cod\') AS payment_method, COALESCE(payments.status, \'pending\') AS payment_status FROM orders LEFT JOIN payments ON payments.order_id = orders.id WHERE orders.id = :id FOR UPDATE');
             $statement->execute(['id' => $id]);
             $current = $statement->fetch();
             if (!$current) throw new RuntimeException('Không tìm thấy đơn hàng.');
-            if ($current['status'] === $status) { $pdo->commit(); return; }
+            if ($current['status'] === $status) { $databaseConnection->commit(); return; }
             if ($status === 'cancelled' && trim($note) === '') throw new RuntimeException('Hủy đơn hàng bắt buộc phải có lý do.');
             if (!$this->canChangeStatus((string)$current['status'], $status, $actor)) throw new RuntimeException('Đơn hàng chỉ được chuyển sang bước kế tiếp.');
             if ($status === 'completed' && $current['payment_method'] === 'bank_transfer' && $current['payment_status'] !== 'paid') throw new RuntimeException('Chưa thể hoàn tất đơn PayOS khi giao dịch chưa được xác nhận.');
             if ($status === 'cancelled' && $current['payment_status'] === 'paid') throw new RuntimeException('Đơn đã thanh toán, cần xử lý hoàn tiền trước khi hủy.');
 
-            $update = $pdo->prepare('UPDATE orders SET status = :status WHERE id = :id');
+            $update = $databaseConnection->prepare('UPDATE orders SET status = :status WHERE id = :id');
             $update->execute(['status' => $status, 'id' => $id]);
             if ($status === 'cancelled' || $status === 'cancel_requested') {
-                $pdo->prepare('UPDATE orders SET cancel_reason = :reason, cancel_requested_at = CASE WHEN :requested = 1 THEN NOW() ELSE cancel_requested_at END WHERE id = :id')->execute(['reason' => $note, 'requested' => $status === 'cancel_requested' ? 1 : 0, 'id' => $id]);
+                $databaseConnection->prepare('UPDATE orders SET cancel_reason = :reason, cancel_requested_at = CASE WHEN :requested = 1 THEN NOW() ELSE cancel_requested_at END WHERE id = :id')->execute(['reason' => $note, 'requested' => $status === 'cancel_requested' ? 1 : 0, 'id' => $id]);
             }
-            $history = $pdo->prepare('INSERT INTO order_status_history (order_id, from_status, to_status, changed_by, note) VALUES (:order_id, :from_status, :to_status, :changed_by, :note)');
+            $history = $databaseConnection->prepare('INSERT INTO order_status_history (order_id, from_status, to_status, changed_by, note) VALUES (:order_id, :from_status, :to_status, :changed_by, :note)');
             $historyNote = $note !== '' ? $note : 'Cập nhật trạng thái đơn hàng.';
             if (function_exists('mb_substr')) $historyNote = mb_substr($historyNote, 0, 250);
             else $historyNote = substr($historyNote, 0, 250);
             $history->execute(['order_id' => $id, 'from_status' => $current['status'], 'to_status' => $status, 'changed_by' => $changedBy, 'note' => $historyNote]);
 
             if ($status === 'completed') {
-                $payment = $pdo->prepare("INSERT INTO payments (order_id, method, status, amount, paid_at) VALUES (:order_id, 'cod', 'paid', :amount, NOW()) ON DUPLICATE KEY UPDATE status = 'paid', paid_at = COALESCE(paid_at, NOW()), amount = VALUES(amount)");
+                $payment = $databaseConnection->prepare("INSERT INTO payments (order_id, method, status, amount, paid_at) VALUES (:order_id, 'cod', 'paid', :amount, NOW()) ON DUPLICATE KEY UPDATE status = 'paid', paid_at = COALESCE(paid_at, NOW()), amount = VALUES(amount)");
                 $payment->execute(['order_id' => $id, 'amount' => (int)$current['total']]);
             }
             if ($status === 'returned') {
-                $pdo->prepare("UPDATE payments SET status = 'refunded' WHERE order_id = :order_id")->execute(['order_id' => $id]);
-                $this->restoreReturnedStock($pdo, $id);
+                $databaseConnection->prepare("UPDATE payments SET status = 'refunded' WHERE order_id = :order_id")->execute(['order_id' => $id]);
+                $this->restoreReturnedStock($databaseConnection, $id);
             }
-            if ($status === 'cancelled') $this->restoreCancelledOrder($pdo, $current);
-            if ($status === 'completed' || $status === 'returned' || $status === 'cancelled') $this->updateCustomerTier($pdo, (int)$current['user_id']);
-            $pdo->commit();
+            if ($status === 'cancelled') $this->restoreCancelledOrder($databaseConnection, $current);
+            if ($status === 'completed' || $status === 'returned' || $status === 'cancelled') $this->updateCustomerTier($databaseConnection, (int)$current['user_id']);
+            $databaseConnection->commit();
             if ($status === 'completed') (new MemberPoint($this->database))->earnForOrder((int)$current['user_id'], $id, (int)$current['total']);
             $this->sendStatusEmail($id, $status, $note);
         } catch (\Throwable $exception) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
+            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
             throw $exception;
         }
     }
@@ -506,30 +506,30 @@ final class Order
         return in_array($to, $steps[$from] ?? [], true);
     }
 
-    private function restoreCancelledOrder($pdo, array $order): void
+    private function restoreCancelledOrder($databaseConnection, array $order): void
     {
-        $pdo->prepare("UPDATE payments SET status = 'cancelled' WHERE order_id = :order_id AND status <> 'paid'")->execute(['order_id' => (int)$order['id']]);
-        $items = $pdo->prepare('SELECT book_id, quantity FROM order_items WHERE order_id = :order_id');
+        $databaseConnection->prepare("UPDATE payments SET status = 'cancelled' WHERE order_id = :order_id AND status <> 'paid'")->execute(['order_id' => (int)$order['id']]);
+        $items = $databaseConnection->prepare('SELECT book_id, quantity FROM order_items WHERE order_id = :order_id');
         $items->execute(['order_id' => (int)$order['id']]);
-        $restore = $pdo->prepare('UPDATE books SET stock_quantity = stock_quantity + :quantity WHERE id = :book_id');
+        $restore = $databaseConnection->prepare('UPDATE books SET stock_quantity = stock_quantity + :quantity WHERE id = :book_id');
         foreach ($items->fetchAll() as $item) $restore->execute(['quantity' => (int)$item['quantity'], 'book_id' => (int)$item['book_id']]);
-        if (!empty($order['voucher_code'])) $pdo->prepare('UPDATE vouchers SET used_count = GREATEST(0, used_count - 1) WHERE code = :code')->execute(['code' => $order['voucher_code']]);
+        if (!empty($order['voucher_code'])) $databaseConnection->prepare('UPDATE vouchers SET used_count = GREATEST(0, used_count - 1) WHERE code = :code')->execute(['code' => $order['voucher_code']]);
     }
 
-    private function restoreReturnedStock($pdo, int $orderId): void
+    private function restoreReturnedStock($databaseConnection, int $orderId): void
     {
-        $items = $pdo->prepare('SELECT book_id, quantity FROM order_items WHERE order_id = :order_id');
+        $items = $databaseConnection->prepare('SELECT book_id, quantity FROM order_items WHERE order_id = :order_id');
         $items->execute(['order_id' => $orderId]);
-        $restore = $pdo->prepare('UPDATE books SET stock_quantity = stock_quantity + :quantity WHERE id = :book_id');
+        $restore = $databaseConnection->prepare('UPDATE books SET stock_quantity = stock_quantity + :quantity WHERE id = :book_id');
         foreach ($items->fetchAll() as $item) $restore->execute(['quantity' => (int)$item['quantity'], 'book_id' => (int)$item['book_id']]);
     }
 
-    private function updateCustomerTier($pdo, int $userId): void
+    private function updateCustomerTier($databaseConnection, int $userId): void
     {
-        $tier = $pdo->prepare("SELECT id FROM customer_tiers WHERE min_spending <= (SELECT COALESCE(SUM(total), 0) FROM orders WHERE user_id = :user_id AND status = 'completed') ORDER BY min_spending DESC LIMIT 1");
+        $tier = $databaseConnection->prepare("SELECT id FROM customer_tiers WHERE min_spending <= (SELECT COALESCE(SUM(total), 0) FROM orders WHERE user_id = :user_id AND status = 'completed') ORDER BY min_spending DESC LIMIT 1");
         $tier->execute(['user_id' => $userId]);
         $tierId = $tier->fetchColumn();
-        if ($tierId !== false) $pdo->prepare('UPDATE users SET customer_tier_id = :tier_id WHERE id = :user_id')->execute(['tier_id' => (int)$tierId, 'user_id' => $userId]);
+        if ($tierId !== false) $databaseConnection->prepare('UPDATE users SET customer_tier_id = :tier_id WHERE id = :user_id')->execute(['tier_id' => (int)$tierId, 'user_id' => $userId]);
     }
 
     private function saveCancelReason(int $id, string $reason, bool $requested): void
