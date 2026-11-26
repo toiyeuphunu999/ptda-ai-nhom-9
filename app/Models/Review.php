@@ -42,7 +42,7 @@ final class Review
 
     public function save(int $userId, int $bookId, int $rating, string $comment): int
     {
-        if ($rating < 1 || $rating > 5 || trim($comment) === '' || mb_strlen($comment) > 2000) throw new RuntimeException('Đánh giá cần từ 1 đến 5 sao và nội dung tối đa 2.000 ký tự.');
+        if ($rating < 1 || $rating > 5 || trim($comment) === '' || mb_strlen(trim($comment)) > 2000) throw new RuntimeException('Đánh giá cần từ 1 đến 5 sao và nội dung tối đa 2.000 ký tự.');
         $statement = $this->database->connection()->prepare('INSERT INTO reviews (user_id,book_id,rating,comment) VALUES (:user_id,:book_id,:rating,:comment)');
         $statement->execute(['user_id'=>$userId,'book_id'=>$bookId,'rating'=>$rating,'comment'=>trim($comment)]);
         return (int)$this->database->connection()->lastInsertId();

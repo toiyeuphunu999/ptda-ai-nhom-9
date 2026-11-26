@@ -179,7 +179,7 @@ final class User
         if ($name === '' || mb_strlen($name) > 120) {
             throw new \RuntimeException('Họ tên không được để trống và tối đa 120 ký tự.');
         }
-        if (mb_strlen($phone) > 30) throw new \RuntimeException('Số điện thoại tối đa 30 ký tự.');
+        if ($phone !== '' && !preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) throw new \RuntimeException('Số điện thoại không hợp lệ.');
         if (mb_strlen($address) > 255) throw new \RuntimeException('Địa chỉ tối đa 255 ký tự.');
         $statement = $this->database->connection()->prepare('UPDATE users SET name = :name, phone = :phone, address = :address WHERE id = :id');
         $statement->execute(['name' => $name, 'phone' => $phone !== '' ? $phone : null, 'address' => $address !== '' ? $address : null, 'id' => $id]);
@@ -191,7 +191,7 @@ final class User
             "SELECT users.id, users.name, users.email, users.phone, users.address, users.role,
                     users.wallet_balance, users.purchase_blocked, customer_tiers.name AS customer_tier,
                     users.created_at, COUNT(DISTINCT orders.id) AS order_count,
-                    COALESCE(SUM(CASE WHEN orders.status IN ('confirmed', 'shipping', 'completed') THEN orders.total ELSE 0 END), 0) AS total_spent
+                    COALESCE(SUM(CASE WHEN orders.status = 'completed' THEN orders.total ELSE 0 END), 0) AS total_spent
              FROM users INNER JOIN customer_tiers ON customer_tiers.id = users.customer_tier_id
              LEFT JOIN orders ON orders.user_id = users.id
              GROUP BY users.id, users.name, users.email, users.phone, users.address, users.role,
@@ -205,7 +205,7 @@ final class User
         $statement = $this->database->connection()->prepare(
             "SELECT users.*, customer_tiers.name AS customer_tier,
                     COUNT(DISTINCT orders.id) AS order_count,
-                    COALESCE(SUM(CASE WHEN orders.status IN ('confirmed', 'shipping', 'completed') THEN orders.total ELSE 0 END), 0) AS total_spent
+                    COALESCE(SUM(CASE WHEN orders.status = 'completed' THEN orders.total ELSE 0 END), 0) AS total_spent
              FROM users INNER JOIN customer_tiers ON customer_tiers.id = users.customer_tier_id
              LEFT JOIN orders ON orders.user_id = users.id
              WHERE users.id = :id
@@ -222,7 +222,7 @@ final class User
         $name = trim($name); $email = trim($email); $phone = trim($phone); $address = trim($address);
         if ($name === '' || mb_strlen($name) > 120) throw new \RuntimeException('Họ tên không được để trống và tối đa 120 ký tự.');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190) throw new \RuntimeException('Email không hợp lệ.');
-        if (mb_strlen($phone) > 30) throw new \RuntimeException('Số điện thoại tối đa 30 ký tự.');
+        if ($phone !== '' && !preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) throw new \RuntimeException('Số điện thoại không hợp lệ.');
         if (mb_strlen($address) > 255) throw new \RuntimeException('Địa chỉ tối đa 255 ký tự.');
         $statement = $this->database->connection()->prepare(
             'UPDATE users SET name = :name, email = :email, phone = :phone, address = :address WHERE id = :id'

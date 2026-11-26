@@ -50,6 +50,10 @@ return function (Router $router, View $view): void {
     $router->get('/checkout', [$cartController, 'checkout']);
     $router->post('/checkout', [$cartController, 'placeOrder']);
     $router->get('/orders', [$cartController, 'orderHistory']);
+    $router->get('/orders/{id}', [$cartController, 'orderDetail']);
+    $router->post('/orders/{id}/cancel', [$cartController, 'cancelOrder']);
+    $router->post('/orders/{id}/confirm-received', [$cartController, 'confirmReceived']);
+    $router->post('/orders/{id}/return', [$cartController, 'requestReturn']);
 
     // Wishlist
     $router->get('/wishlist', [$wishlistController, 'index']);
@@ -106,8 +110,13 @@ return function (Router $router, View $view): void {
     $router->post('/admin/categories/{id}/update', [$adminCatalogController, 'categoryUpdate']);
     $router->post('/admin/categories/{id}/delete', [$adminCatalogController, 'categoryDelete']);
     $router->get('/admin/orders', [$adminOrderController, 'orders']);
+    $router->get('/admin/orders/{id}', [$adminOrderController, 'detail']);
     $router->get('/admin/payments', [$adminOrderController, 'payments']);
     $router->post('/admin/orders/{id}/status', [$adminOrderController, 'orderStatus']);
+    $router->post('/admin/orders/{id}/cancel-decision', [$adminOrderController, 'cancelDecision']);
+    $router->post('/admin/orders/{id}/return-decision', [$adminOrderController, 'returnDecision']);
+    $router->post('/admin/orders/{id}/return-received', [$adminOrderController, 'returnReceived']);
+    $router->get('/admin/orders/{id}/return-image', [$adminOrderController, 'returnImage']);
     $router->get('/admin/customers', [$adminCustomerController, 'customers']);
     $router->get('/admin/customers/{id}', [$adminCustomerController, 'detail']);
     $router->post('/admin/customers/{id}/profile', [$adminCustomerController, 'updateProfile']);

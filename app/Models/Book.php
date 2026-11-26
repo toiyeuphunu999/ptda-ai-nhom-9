@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Helpers\ViewHelper;
 use App\Core\Database;
 use RuntimeException;
 
@@ -142,8 +143,8 @@ final class Book
     {
         $data['slug'] = $this->uniqueSlug((string)$data['title']);
         $statement = $this->database->connection()->prepare(
-            'INSERT INTO books (category_id, title, slug, author, publisher, price, original_price, description, stock_quantity, status) '
-            . 'VALUES (:category_id, :title, :slug, :author, :publisher, :price, :original_price, :description, :stock_quantity, :status)'
+            'INSERT INTO books (category_id, title, slug, author, publisher, price, original_price, description, preview_content, stock_quantity, status) '
+            . 'VALUES (:category_id, :title, :slug, :author, :publisher, :price, :original_price, :description, :preview_content, :stock_quantity, :status)'
         );
         $statement->execute($data);
         return (int)$this->database->connection()->lastInsertId();
@@ -153,21 +154,30 @@ final class Book
     {
         $title = trim((string)($input['title'] ?? ''));
         $author = trim((string)($input['author'] ?? ''));
-        $price = (int)($input['price'] ?? 0);
+        $priceInput = trim((string)($input['price'] ?? ''));
+        $price = filter_var($priceInput, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
         $original = trim((string)($input['original_price'] ?? ''));
-        $categoryId = (int)($input['category_id'] ?? 0);
-        if ($title === '' || $author === '' || $categoryId < 1 || $price < 0 || ($original !== '' && (int)$original < $price)) {
+        $originalValue = $original === '' ? null : filter_var($original, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+        $categoryId = filter_var($input['category_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $stock = filter_var($input['stock_quantity'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+        if ($price === false || $categoryId === false || $stock === false || $title === '' || mb_strlen($title) > 190 || $author === '' || mb_strlen($author) > 190 || ($original !== '' && $originalValue === false) || ($originalValue !== null && $originalValue < $price)) {
             throw new RuntimeException('Vui lòng kiểm tra tên sách, tác giả, danh mục và giá sách.');
         }
+        if (mb_strlen((string)($input['publisher'] ?? '')) > 190 || mb_strlen((string)($input['description'] ?? '')) > 10000 || mb_strlen((string)($input['preview_content'] ?? '')) > 50000) {
+            throw new RuntimeException('Thông tin sách vượt quá độ dài cho phép.');
+        }
+        $description = ViewHelper::richText(trim((string)($input['description'] ?? '')));
+        $previewContent = ViewHelper::richText(trim((string)($input['preview_content'] ?? '')));
         return [
             'category_id' => $categoryId,
             'title' => $title,
             'author' => $author,
             'publisher' => trim((string)($input['publisher'] ?? '')) ?: null,
             'price' => $price,
-            'original_price' => $original === '' ? null : (int)$original,
-            'description' => trim((string)($input['description'] ?? '')) ?: null,
-            'stock_quantity' => max(0, (int)($input['stock_quantity'] ?? 0)),
+            'original_price' => $originalValue === null || $originalValue === false ? null : $originalValue,
+            'description' => $description !== '' ? $description : null,
+            'preview_content' => $previewContent !== '' ? $previewContent : null,
+            'stock_quantity' => $stock,
             'status' => in_array($input['status'] ?? 'draft', ['draft', 'published', 'hidden'], true) ? $input['status'] : 'draft',
         ];
     }
@@ -178,7 +188,7 @@ final class Book
         $data['id'] = $id;
         $statement = $this->database->connection()->prepare(
             'UPDATE books SET category_id = :category_id, title = :title, slug = :slug, author = :author, '
-            . 'publisher = :publisher, price = :price, original_price = :original_price, description = :description, '
+            . 'publisher = :publisher, price = :price, original_price = :original_price, description = :description, preview_content = :preview_content, '
             . 'stock_quantity = :stock_quantity, status = :status WHERE id = :id'
         );
         $statement->execute($data);

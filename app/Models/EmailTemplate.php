@@ -32,6 +32,40 @@ final class EmailTemplate
         );
     }
 
+    public static function orderStatus(string $name, string $orderCode, string $status, string $reason, string $link): string
+    {
+        $statusNames = [
+            'pending' => 'Chờ xử lý', 'confirmed' => 'Đã xác nhận', 'shipping' => 'Đang giao',
+            'delivered' => 'Giao thành công', 'completed' => 'Hoàn tất', 'cancel_requested' => 'Chờ duyệt hủy',
+            'cancelled' => 'Đã hủy', 'return_requested' => 'Chờ duyệt đổi trả', 'return_shipping' => 'Đang trả hàng',
+            'returned' => 'Đã nhận hàng trả', 'return_rejected' => 'Từ chối đổi trả',
+        ];
+        $label = $statusNames[$status] ?? $status;
+        $note = $reason !== '' ? 'Lý do hoặc ghi chú: ' . $reason : 'Bạn có thể mở lịch sử đơn hàng để xem chi tiết.';
+        return self::layout(
+            'Cập nhật đơn hàng',
+            'Đơn hàng ' . $orderCode . ' đã cập nhật',
+            'Trạng thái hiện tại của đơn hàng là: ' . $label . '.',
+            $link,
+            'Xem đơn hàng',
+            $note,
+            $name
+        );
+    }
+
+    public static function newOrder(string $name, string $orderCode, string $link): string
+    {
+        return self::layout(
+            'Đơn hàng mới',
+            'Có đơn hàng mới ' . $orderCode,
+            'Một khách hàng vừa tạo đơn hàng mới trên Nhà sách Mộc Bản.',
+            $link,
+            'Mở quản trị đơn hàng',
+            'Vui lòng kiểm tra thông tin và xác nhận đơn hàng.',
+            $name
+        );
+    }
+
     private static function layout(string $eyebrow, string $title, string $intro, string $link, string $button, string $note, string $name): string
     {
         $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');

@@ -49,9 +49,10 @@ final class Voucher
     public function create(string $code, string $type, int $value, int $minimum, ?string $startsAt, ?string $expiresAt, ?int $usageLimit): void
     {
         $code = strtoupper(trim($code));
-        if (!preg_match('/^[A-Z0-9_-]{3,50}$/', $code) || !in_array($type, ['percent', 'fixed'], true) || $value < 1 || ($type === 'percent' && $value > 100)) {
+        if (!preg_match('/^[A-Z0-9_-]{3,50}$/', $code) || !in_array($type, ['percent', 'fixed'], true) || $value < 1 || ($type === 'percent' && $value > 100) || $minimum < 0 || ($usageLimit !== null && $usageLimit < 1)) {
             throw new RuntimeException('Mã, loại và giá trị voucher không hợp lệ.');
         }
+        if (($startsAt !== null && strtotime($startsAt) === false) || ($expiresAt !== null && strtotime($expiresAt) === false)) throw new RuntimeException('Thời hạn voucher không hợp lệ.');
         if ($startsAt && $expiresAt && strtotime($expiresAt) < strtotime($startsAt)) throw new RuntimeException('Thời hạn voucher không hợp lệ.');
         $statement = $this->database->connection()->prepare('INSERT INTO vouchers (code,type,value,min_order_amount,starts_at,expires_at,usage_limit) VALUES (:code,:type,:value,:minimum,:starts_at,:expires_at,:usage_limit)');
         $statement->execute(['code'=>$code,'type'=>$type,'value'=>$value,'minimum'=>max(0,$minimum),'starts_at'=>$startsAt ?: null,'expires_at'=>$expiresAt ?: null,'usage_limit'=>$usageLimit && $usageLimit > 0 ? $usageLimit : null]);

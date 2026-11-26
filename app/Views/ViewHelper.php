@@ -6,8 +6,16 @@ namespace App\Helpers;
 
 final class ViewHelper
 {
-    public static function escape(string $value): string
+    public static function escape(mixed $value): string
     {
+        if ($value === null) {
+            $value = '';
+        } elseif (!is_scalar($value) && !($value instanceof \Stringable)) {
+            $value = '';
+        } else {
+            $value = (string)$value;
+        }
+
         if (preg_match('/^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?$/', $value)) {
             try {
                 $date = new \DateTimeImmutable($value);
@@ -27,7 +35,13 @@ final class ViewHelper
     public static function richText(string $value): string
     {
         $allowedTags = '<p><br><strong><em><u><s><ol><ul><li><blockquote>';
-        return strip_tags($value, $allowedTags);
+        $value = strip_tags($value, $allowedTags);
+        $value = preg_replace_callback(
+            '/<([a-z][a-z0-9]*)\b[^>]*>/i',
+            static fn (array $match): string => '<' . strtolower($match[1]) . '>',
+            $value
+        );
+        return is_string($value) ? $value : '';
     }
 
     public static function orderStatus(string $status): string
@@ -36,8 +50,36 @@ final class ViewHelper
             'pending' => 'Chờ xử lý',
             'confirmed' => 'Đã xác nhận',
             'shipping' => 'Đang giao',
+            'delivered' => 'Giao thành công',
             'completed' => 'Hoàn tất',
+            'cancel_requested' => 'Chờ duyệt hủy',
+            'return_requested' => 'Chờ duyệt đổi trả',
+            'return_shipping' => 'Đang trả hàng',
+            'returned' => 'Đã nhận hàng trả',
+            'return_rejected' => 'Từ chối đổi trả',
             'cancelled' => 'Đã hủy',
+        ][$status] ?? $status;
+    }
+
+    public static function paymentMethod(string $method): string
+    {
+        return [
+            'cod' => 'Thanh toán khi nhận hàng (COD)',
+            'bank_transfer' => 'Chuyển khoản ngân hàng',
+            'momo' => 'Ví MoMo',
+            'vnpay' => 'VNPay',
+            'zalopay' => 'ZaloPay',
+        ][$method] ?? $method;
+    }
+
+    public static function paymentStatus(string $status): string
+    {
+        return [
+            'pending' => 'Chờ thanh toán',
+            'paid' => 'Đã thanh toán',
+            'failed' => 'Thanh toán thất bại',
+            'cancelled' => 'Đã hủy thanh toán',
+            'refunded' => 'Đã hoàn tiền',
         ][$status] ?? $status;
     }
 

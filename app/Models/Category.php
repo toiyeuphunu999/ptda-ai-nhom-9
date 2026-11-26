@@ -45,7 +45,7 @@ final class Category
     public function dataFromInput(array $input): array
     {
         $name = trim((string)($input['name'] ?? ''));
-        if ($name === '') {
+        if ($name === '' || mb_strlen($name) > 120 || mb_strlen((string)($input['description'] ?? '')) > 1000) {
             throw new RuntimeException('Tên danh mục không được để trống.');
         }
         return [$name, '', trim((string)($input['description'] ?? '')) ?: null];

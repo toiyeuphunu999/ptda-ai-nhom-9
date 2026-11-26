@@ -73,8 +73,7 @@ final class SystemSetting
 
     private function currentHttpHost(): string
     {
-        $host = preg_replace('/[^a-zA-Z0-9.:\-\[\]]/', '', (string)($_SERVER['HTTP_HOST'] ?? ''));
-        return 'http://' . ($host !== '' ? $host : 'localhost');
+        return rtrim((string)(getenv('APP_URL') ?: 'http://localhost'), '/');
     }
 
     public function get(string $key): ?string
@@ -126,6 +125,12 @@ final class SystemSetting
         if (!in_array($smtpEncryption, array('tls', 'ssl', 'none'), true)) {
             $smtpEncryption = 'tls';
         }
+        if ($shopEmail !== '' && !filter_var($shopEmail, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Email cửa hàng không hợp lệ.');
+        if ($mailFrom !== '' && !filter_var($mailFrom, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Email gửi đi không hợp lệ.');
+        if ($googleRedirectUri !== '' && !filter_var($googleRedirectUri, FILTER_VALIDATE_URL)) throw new RuntimeException('Địa chỉ callback Google không hợp lệ.');
+        if ($smtpHost !== '' && mb_strlen($smtpHost) > 190) throw new RuntimeException('Tên máy chủ SMTP quá dài.');
+        if ((int)($input['mail_smtp_port'] ?? 587) < 1 || (int)($input['mail_smtp_port'] ?? 587) > 65535) throw new RuntimeException('Cổng SMTP không hợp lệ.');
+        if ((int)($input['shipping_fee'] ?? 0) < 0) throw new RuntimeException('Phí vận chuyển không hợp lệ.');
         return [
             'SHOP_PHONE' => ['value' => $shopPhone, 'secret' => false],
             'SHOP_EMAIL' => ['value' => $shopEmail, 'secret' => false],

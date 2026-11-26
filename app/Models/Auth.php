@@ -25,7 +25,7 @@ final class Auth
     public function register(string $name, string $email, string $password, string $referralCode = ''): array
     {
         $name = trim($name); $email = trim($email); $referralCode = trim($referralCode);
-        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 8) throw new RuntimeException('Vui lòng nhập tên, email hợp lệ và mật khẩu tối thiểu 8 ký tự.');
+        if ($name === '' || mb_strlen($name) > 120 || !filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190 || strlen($password) < 8 || strlen($password) > 200) throw new RuntimeException('Vui lòng nhập tên, email hợp lệ và mật khẩu từ 8 đến 200 ký tự.');
         $users = new User($this->database);
         if ($users->findByEmail($email)) throw new RuntimeException('Email này đã được đăng ký.');
         if ($referralCode !== '' && !$users->findByReferralCode($referralCode)) throw new RuntimeException('Mã giới thiệu không tồn tại.');
@@ -48,7 +48,7 @@ final class Auth
     public function resetPassword(string $token, string $password, string $confirmation): void
     {
         if (trim($token) === '') throw new RuntimeException('Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
-        if (strlen($password) < 8) throw new RuntimeException('Mật khẩu mới phải có ít nhất 8 ký tự.');
+        if (strlen($password) < 8 || strlen($password) > 200) throw new RuntimeException('Mật khẩu mới phải từ 8 đến 200 ký tự.');
         if ($password !== $confirmation) throw new RuntimeException('Mật khẩu xác nhận không khớp.');
         if (!(new User($this->database))->resetPassword($token, $password)) throw new RuntimeException('Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
     }
@@ -108,8 +108,7 @@ final class Auth
 
     private function baseUrl(): string
     {
-        $host = preg_replace('/[^a-zA-Z0-9.:\-\[\]]/', '', (string)($_SERVER['HTTP_HOST'] ?? 'localhost')) ?: 'localhost';
-        return rtrim((string)(getenv('APP_URL') ?: 'http://' . $host), '/');
+        return rtrim((string)(getenv('APP_URL') ?: 'http://localhost'), '/');
     }
 
     private function googleRequest(string $url, array $fields): array

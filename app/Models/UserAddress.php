@@ -88,7 +88,7 @@ final class UserAddress
         $label=trim($label); $name=trim($name); $phone=trim($phone); $address=trim($address);
         if ($label === '' || mb_strlen($label) > 50) throw new RuntimeException('Tên địa chỉ không hợp lệ.');
         if ($name === '' || mb_strlen($name) > 120) throw new RuntimeException('Họ tên người nhận không hợp lệ.');
-        if ($phone === '' || mb_strlen($phone) > 30) throw new RuntimeException('Số điện thoại không hợp lệ.');
+        if (!preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) throw new RuntimeException('Số điện thoại không hợp lệ.');
         if ($address === '' || mb_strlen($address) > 255) throw new RuntimeException('Địa chỉ không hợp lệ.');
         return [$label, $name, $phone, $address];
     }
