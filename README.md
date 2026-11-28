@@ -1,94 +1,111 @@
 # Nhà sách Mộc Bản — WEB212
 
-Website bán sách trực tuyến cho đồ án WEB212, triển khai trên PHP/Apache/MySQL.
+Website bán sách trực tuyến bằng PHP 8.x, MySQL và Apache. Project dùng MVC tự xây dựng, front controller tại `public/index.php`, PDO prepared statements và Tailwind CSS được build ở thời điểm phát triển.
+
+## Trạng thái hiện tại
+
+- Catalogue: trang chủ, sách, danh mục, tìm kiếm, lọc, sắp xếp và chi tiết sách.
+- Tài khoản: đăng ký, đăng nhập, đăng xuất, xác thực email, quên/đặt lại mật khẩu và đăng nhập Google OAuth.
+- Customer: giỏ hàng Session, checkout, nhiều địa chỉ nhận hàng, danh sách yêu thích, lịch sử đơn và đánh giá sách đủ điều kiện.
+- Đơn hàng: COD và PayOS/VietQR, transaction tồn kho, lịch sử trạng thái, voucher và điểm thành viên.
+- Admin: dashboard, báo cáo, sách, danh mục, đơn hàng, thanh toán, khách hàng, voucher và cài đặt hệ thống.
+- Giao diện: Tailwind utility classes từ `resources/css/input.css`, đầu ra được build tại `public/assets/css/tailwind.generated.css`.
+
+PayOS, Google OAuth và SMTP là các tích hợp có code trong project nhưng chỉ hoạt động khi môi trường chạy đã khai báo credential hợp lệ. Không commit credential thật.
+
+## Yêu cầu
+
+- PHP 8.x với PDO MySQL, cURL và OpenSSL.
+- MySQL/MariaDB.
+- Apache với `mod_rewrite` hoặc PHP built-in server cho local.
+- Node.js/npm chỉ cần khi thay đổi nguồn Tailwind.
+
+## Cài đặt local
+
+1. Tạo database `bookstore_web212`.
+2. Chạy `database/schema.sql`.
+3. Với database nâng cấp, chạy các migration trong `database/migrations/` theo thứ tự số từ `002` đến `017`.
+4. Chạy `database/seed.sql` trên database local mới nếu cần dữ liệu mẫu.
+5. Sao chép `.env.example` thành `.env` và điền thông tin database, `APP_KEY` cùng các tích hợp cần dùng.
+6. Trỏ Apache DocumentRoot vào thư mục `public/`, hoặc chạy:
+
+```text
+php -S localhost:8000 -t public
+```
+
+7. Mở `http://localhost:8000/` hoặc domain Laragon tương ứng.
+8. Tạo admin bằng:
+
+```text
+php tools/create_admin.php
+```
+
+Không có tài khoản hoặc mật khẩu admin mặc định trong source.
 
 ## Build CSS
-
-Giao diện được build bằng Tailwind CSS v4:
 
 ```text
 npm install
 npm run build:css
 ```
 
-File CSS runtime được tạo tại `public/assets/css/tailwind.generated.css`. Không sửa trực tiếp file generated; chỉnh nguồn tại `resources/css/input.css` và các view PHP.
+Chỉnh `resources/css/input.css` hoặc class trong view, sau đó build lại. Không sửa trực tiếp `public/assets/css/tailwind.generated.css`.
 
-## Phạm vi hiện tại
-
-- PHP 8.x, OOP, MVC và routing tập trung tại `public/index.php`.
-- MySQL Laragon database `bookstore_web212`, PDO Prepared Statements và schema trong `database/schema.sql`.
-- 8 danh mục và 40 sách mẫu trong `database/seed.sql`.
-- Đăng ký/đăng nhập, password hash, session cookie, CSRF và bảo vệ admin.
-- CRUD sách/danh mục cơ bản, giỏ hàng Session và đặt hàng COD.
-- Lọc sách theo danh mục, tác giả, khoảng giá và sắp xếp theo giá hoặc mới nhất.
-- Đơn hàng dùng transaction và khóa tồn kho trong lúc tạo đơn.
-- Đánh giá và nhận xét chỉ dành cho khách hàng đã mua sách.
-- Admin tạo voucher phần trăm/số tiền, đặt đơn tối thiểu, thời hạn và giới hạn lượt dùng.
-- Thành viên tích điểm khi hoàn tất đơn hàng, đánh giá sách và giới thiệu người dùng mới.
-- Dashboard Admin thống kê doanh thu tổng, theo ngày/tháng, sách bán chạy và đơn hàng gần đây.
-- Database có hạng khách hàng thường/VIP, bảng thanh toán online mở rộng, lịch sử trạng thái đơn và các view báo cáo bán hàng.
-- Thanh toán hiện hỗ trợ COD; thanh toán online, email, API nghiệp vụ và biến thể sách chưa nằm trong phạm vi hiện tại.
-- Tạo tài khoản Admin bằng `php tools/create_admin.php`; không có credential mặc định trong source.
-
-### Cấu hình đăng nhập Google
-
-1. Tạo OAuth Client ID loại **Web application** trong Google Cloud Console.
-2. Thêm đúng redirect URI: `http://localhost/auth/google/callback` (hoặc URL trong `GOOGLE_REDIRECT_URI`).
-3. Chạy migration `database/migrations/009_google_login.sql`.
-4. Khai báo `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` và `GOOGLE_REDIRECT_URI` trong môi trường chạy PHP.
-5. Mở `/login` và chọn **Tiếp tục với Google**.
-
-### Xác thực email
-
-- Tài khoản đăng ký bằng email sẽ nhận link xác thực có hiệu lực 24 giờ.
-- Người dùng chưa xác thực sẽ không thể đăng nhập bằng mật khẩu.
-- Cấu hình SMTP host, port, username, password và encryption tại `/admin/settings` để gửi email xác thực.
-- Người dùng có thể yêu cầu gửi lại email tại trang `/login`.
-- SMTP host, port, username, password, encryption và thông tin người gửi có thể cấu hình tại `/admin/settings`.
-
-### Thông tin nhận hàng mặc định
-
-- Người dùng có thể lưu họ tên, số điện thoại và địa chỉ nhận hàng tại `/account`.
-- Người dùng có thể lưu nhiều địa chỉ nhận hàng, chọn địa chỉ mặc định và chọn nhanh địa chỉ ở checkout.
-- Người dùng đã đăng nhập có thể lưu, xem và xóa sách trong danh sách yêu thích tại `/wishlist`.
-- Các thông tin đã lưu được tự điền vào form thanh toán và vẫn có thể chỉnh sửa trước khi đặt từng đơn.
-- Checkout yêu cầu email nhận thông báo và lưu email đó cùng đơn hàng.
-
-### Quên mật khẩu
-
-- Người dùng có thể yêu cầu link đặt lại mật khẩu tại `/forgot-password`.
-- Link reset có hiệu lực 60 phút và chỉ sử dụng được một lần.
-- Token reset chỉ lưu dạng hash trong bảng `password_reset_tokens`.
-
-## Chạy local
-
-Đặt DocumentRoot của Apache vào thư mục `public/`. Khi dùng PHP built-in server:
+## Cấu trúc project
 
 ```text
-php -S localhost:8000 -t public
+app/
+  Controllers/   Điều phối request và kiểm tra quyền
+  Models/        PDO, nghiệp vụ, transaction và service hiện tại
+  Views/         Layout, partial và giao diện PHP/HTML
+config/          Route và cấu hình không chứa secret
+database/        Schema, seed và migration
+docs/            SRS, use case, ERD, triển khai và kiểm thử
+public/          Front controller, .htaccess và asset public
+resources/css/   Nguồn Tailwind CSS
+storage/         Key/runtime data, không public
+tools/            Script quản trị local
 ```
 
-Sau đó mở `http://localhost:8000/`.
+Một số lớp nền tảng vẫn nằm trong thư mục hiện hữu nhưng dùng namespace `App\Core`, `App\Helpers` hoặc `App\Services`. Autoloader trong `public/index.php` ánh xạ theo tên lớp để giữ tương thích với cấu trúc hiện tại; không tự ý di chuyển file nếu chưa cập nhật autoload và route.
 
 ## Route chính
 
-`/`, `/books`, `/books/{slug}`, `/categories/{slug}`, `/search`, `/cart`, `/checkout`, `/login`, `/register`, `/account`, `/wishlist`, `/orders`, `/about`, `/contact`, `/faq`, `/guide`, `/shipping`, `/returns`, `/privacy`, `/terms` và nhóm `/admin` (bao gồm `/admin/vouchers`).
+Catalogue: `/`, `/books`, `/books/{slug}`, `/categories/{slug}`, `/search`.
 
-Ảnh bìa mặc định được lưu trong tài nguyên của website. Sách, khách hàng và đơn hàng được quản lý trong database của hệ thống.
+Tài khoản: `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/auth/google`, `/account`, `/wishlist`.
 
-## Cấu trúc MVC
+Mua hàng: `/cart`, `/checkout`, `/orders`, `/orders/{id}`, `/payment/payos/return`, `/payment/payos/cancel`, `/payment/payos/webhook`.
 
-- `app/Models`: truy vấn PDO, CRUD và transaction cho dữ liệu nghiệp vụ.
-- `app/Controllers`: tiếp nhận request, kiểm tra dữ liệu, gọi Model và render View.
-- `app/Views`: giao diện PHP/HTML, layout và partial dùng chung; không chứa SQL.
-- `app/Controllers`, `app/Models`, `app/Views`: ba thư mục chính của MVC; các lớp nền tảng được đặt trong đúng nhóm tương ứng.
-- `config/routes.php`: danh sách route của ứng dụng.
-- `app/Models/PayOSService.php`: adapter nhỏ để gọi API PayOS; không chứa giao diện.
+Thông tin: `/about`, `/contact`, `/faq`, `/guide`, `/shipping`, `/returns`, `/privacy`, `/terms`.
 
-## Chạy project
+Admin: `/admin`, `/admin/reports`, `/admin/books`, `/admin/categories`, `/admin/orders`, `/admin/payments`, `/admin/customers`, `/admin/vouchers`, `/admin/settings`.
 
-1. Tạo database `bookstore_web212` trong MySQL.
-2. Chạy `database/schema.sql`, các migration theo thứ tự và `database/seed.sql` nếu là môi trường mới.
-3. Kiểm tra thông tin database trong biến môi trường hoặc `config/database.php`.
-4. Trỏ Apache DocumentRoot vào thư mục `public/`, hoặc chạy `php -S localhost:8000 -t public`.
-5. Tạo tài khoản quản trị bằng `php tools/create_admin.php`.
+## Bảo mật
+
+- Mật khẩu dùng `password_hash`/`password_verify`.
+- Form ghi dữ liệu dùng CSRF token và server-side validation.
+- SQL dùng PDO prepared statements.
+- Route admin kiểm tra session và role ở server.
+- Output HTML được escape; rich text được lọc bằng helper riêng.
+- `public/` là DocumentRoot; không public `app/`, `config/`, `database/` hoặc `storage/`.
+- `.env`, key, log, cache, upload runtime và credential không được commit.
+
+## Kiểm tra
+
+```text
+php -l <file.php>
+node --check <file.js>
+git diff --check
+```
+
+Khi có database và web server, cần kiểm tra thêm route public/admin, CSRF, checkout, PayOS webhook, OAuth, SMTP và responsive trên các viewport mục tiêu.
+
+## Tài liệu
+
+- `docs/mvc-architecture.md`: luồng MVC và trách nhiệm thư mục.
+- `docs/srs.md`: phạm vi và yêu cầu nghiệp vụ.
+- `docs/use-cases.md`: use case và quyền truy cập.
+- `docs/erd.md`: bảng và quan hệ database hiện tại.
+- `docs/deployment.md`: triển khai local/Apache và tích hợp.
+- `database/README.md`: thứ tự schema, migration và quy tắc dữ liệu.

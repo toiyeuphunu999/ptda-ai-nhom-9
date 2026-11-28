@@ -1,54 +1,8 @@
 <?php
 use App\Helpers\ViewHelper;
-
-$payments = $payments ?? [];
-$method = $method ?? null;
-$status = $status ?? null;
+$payments = $payments ?? []; $method = $method ?? null; $status = $status ?? null;
 $paymentMethods = ['cod'=>'COD','bank_transfer'=>'PayOS / VietQR','momo'=>'MoMo','vnpay'=>'VNPay','zalopay'=>'ZaloPay'];
 $paymentStatuses = ['pending'=>'Chờ thanh toán','processing'=>'Đang xử lý','paid'=>'Đã thanh toán','failed'=>'Thất bại','cancelled'=>'Đã hủy','refunded'=>'Đã hoàn tiền'];
+$button = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100'; $field = 'block min-h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-700 focus:ring-4 focus:ring-blue-100';
 ?>
-<div class="section-heading report-heading">
-    <div>
-        <p class="eyebrow">Đối soát</p>
-        <h2>Quản lý thanh toán</h2>
-        <p class="muted">Theo dõi giao dịch COD và PayOS được ghi nhận từ đơn hàng.</p>
-    </div>
-    <a class="button" href="/admin/reports">Báo cáo tổng hợp</a>
-</div>
-
-<form class="admin-filter" method="get" action="/admin/payments">
-    <label>Phương thức
-        <select name="method">
-            <option value="">Tất cả phương thức</option>
-            <?php foreach ($paymentMethods as $value => $label): ?><option value="<?= $value ?>" <?= $method === $value ? 'selected' : '' ?>><?= ViewHelper::escape($label) ?></option><?php endforeach; ?>
-        </select>
-    </label>
-    <label>Trạng thái
-        <select name="status">
-            <option value="">Tất cả trạng thái</option>
-            <?php foreach ($paymentStatuses as $value => $label): ?><option value="<?= $value ?>" <?= $status === $value ? 'selected' : '' ?>><?= ViewHelper::escape($label) ?></option><?php endforeach; ?>
-        </select>
-    </label>
-    <button class="button button-primary" type="submit">Lọc giao dịch</button>
-    <?php if ($method || $status): ?><a class="button" href="/admin/payments">Xóa bộ lọc</a><?php endif; ?>
-</form>
-
-<section class="admin-panel payment-ledger-panel">
-    <div class="section-heading"><div><p class="eyebrow">Sổ giao dịch</p><h3><?= count($payments) ?> giao dịch</h3></div></div>
-    <?php if (empty($payments)): ?><p class="muted">Chưa có giao dịch phù hợp với bộ lọc.</p><?php else: ?>
-    <div class="table-wrap"><table class="admin-table payment-ledger">
-        <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Phương thức</th><th>Số tiền</th><th>Trạng thái</th><th>Mã giao dịch</th><th>Thời gian</th></tr></thead>
-        <tbody><?php foreach ($payments as $payment): ?>
-            <tr>
-                <td><strong><?= ViewHelper::escape($payment['order_code']) ?></strong><br><small>Đơn: <?= ViewHelper::escape(ViewHelper::orderStatus((string)$payment['order_status'])) ?></small></td>
-                <td><?= ViewHelper::escape($payment['customer_name']) ?><br><small><?= ViewHelper::escape($payment['customer_email']) ?></small></td>
-                <td><?= ViewHelper::escape($paymentMethods[$payment['method']] ?? $payment['method']) ?><br><small><?= ViewHelper::escape($payment['provider'] ?: 'Nội bộ') ?></small></td>
-                <td><strong><?= ViewHelper::money((int)$payment['amount']) ?></strong></td>
-                <td><span class="report-badge <?= $payment['status'] === 'paid' ? 'report-badge-paid' : 'report-badge-neutral' ?>"><?= ViewHelper::escape($paymentStatuses[$payment['status']] ?? $payment['status']) ?></span></td>
-                <td><small><?= ViewHelper::escape($payment['transaction_code'] ?: 'Chưa có') ?></small></td>
-                <td><small><?= ViewHelper::escape($payment['created_at']) ?></small><?php if (!empty($payment['paid_at'])): ?><br><small>Thanh toán: <?= ViewHelper::escape($payment['paid_at']) ?></small><?php endif; ?></td>
-            </tr>
-        <?php endforeach; ?></tbody>
-    </table></div>
-    <?php endif; ?>
-</section>
+<div class="space-y-6"><header class="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between"><div><p class="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-600">Đối soát</p><h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Quản lý thanh toán</h2><p class="mt-2 text-sm text-slate-500">Theo dõi giao dịch COD và PayOS từ các đơn hàng.</p></div><a class="<?= $button ?> border border-slate-300 bg-white text-slate-700 hover:bg-slate-50" href="/admin/reports"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">analytics</span>Báo cáo tổng hợp</a></header><form class="flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" method="get" action="/admin/payments"><label class="min-w-[190px] flex-1 text-sm font-semibold text-slate-700">Phương thức<select class="<?= $field ?> mt-2" name="method"><option value="">Tất cả phương thức</option><?php foreach ($paymentMethods as $value => $label): ?><option value="<?= $value ?>" <?= $method === $value ? 'selected' : '' ?>><?= ViewHelper::escape($label) ?></option><?php endforeach; ?></select></label><label class="min-w-[190px] flex-1 text-sm font-semibold text-slate-700">Trạng thái<select class="<?= $field ?> mt-2" name="status"><option value="">Tất cả trạng thái</option><?php foreach ($paymentStatuses as $value => $label): ?><option value="<?= $value ?>" <?= $status === $value ? 'selected' : '' ?>><?= ViewHelper::escape($label) ?></option><?php endforeach; ?></select></label><button class="<?= $button ?> bg-orange-700 text-white hover:bg-orange-800" type="submit"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">filter_alt</span>Lọc giao dịch</button><?php if ($method || $status): ?><a class="<?= $button ?> border border-slate-300 bg-white text-slate-700 hover:bg-slate-50" href="/admin/payments">Xóa bộ lọc</a><?php endif; ?></form><section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-200/60"><div class="border-b border-slate-200 px-5 py-5"><p class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500">Sổ giao dịch</p><h3 class="mt-1 text-lg font-bold text-slate-950"><?= count($payments) ?> giao dịch</h3></div><?php if (empty($payments)): ?><p class="p-6 text-sm text-slate-500">Chưa có giao dịch phù hợp với bộ lọc.</p><?php else: ?><div class="overflow-x-auto"><table class="w-full min-w-[1050px] border-collapse text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-[0.1em] text-slate-500"><tr><th class="px-4 py-4">Mã đơn</th><th class="px-4 py-4">Khách hàng</th><th class="px-4 py-4">Phương thức</th><th class="px-4 py-4">Số tiền</th><th class="px-4 py-4">Trạng thái</th><th class="px-4 py-4">Mã giao dịch</th><th class="px-4 py-4">Thời gian</th></tr></thead><tbody class="divide-y divide-slate-100"><?php foreach ($payments as $payment): ?><tr class="align-top text-slate-700 transition hover:bg-blue-50/50"><td class="px-4 py-4"><strong class="text-slate-900"><?= ViewHelper::escape($payment['order_code']) ?></strong><small class="mt-1 block text-xs text-slate-500"><?= ViewHelper::escape(ViewHelper::orderStatus((string)$payment['order_status'])) ?></small></td><td class="px-4 py-4"><span class="text-slate-900"><?= ViewHelper::escape($payment['customer_name']) ?></span><small class="mt-1 block text-xs text-slate-500"><?= ViewHelper::escape($payment['customer_email']) ?></small></td><td class="px-4 py-4"><?= ViewHelper::escape($paymentMethods[$payment['method']] ?? $payment['method']) ?><small class="mt-1 block text-xs text-slate-500"><?= ViewHelper::escape($payment['provider'] ?: 'Nội bộ') ?></small></td><td class="px-4 py-4 font-bold text-slate-950"><?= ViewHelper::money((int)$payment['amount']) ?></td><td class="px-4 py-4"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold <?= $payment['status'] === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700' ?>"><?= ViewHelper::escape($paymentStatuses[$payment['status']] ?? $payment['status']) ?></span></td><td class="px-4 py-4 text-xs text-slate-500"><?= ViewHelper::escape($payment['transaction_code'] ?: 'Chưa có') ?></td><td class="whitespace-nowrap px-4 py-4 text-xs text-slate-500"><?= ViewHelper::escape($payment['created_at']) ?><?php if (!empty($payment['paid_at'])): ?><br>Thanh toán: <?= ViewHelper::escape($payment['paid_at']) ?><?php endif; ?></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?></section></div>

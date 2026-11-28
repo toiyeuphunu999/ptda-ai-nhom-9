@@ -12,24 +12,39 @@ header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 
-spl_autoload_register(function (string $class): void {
+function loadProjectClass(string $class): void
+{
     $prefix = 'App\\';
-    if (strncmp($class, $prefix, strlen($prefix)) !== 0) return;
+
+    if (strncmp($class, $prefix, strlen($prefix)) !== 0) {
+        return;
+    }
+
     $className = basename(str_replace('\\', '/', $class));
-    $folders = array('Controllers', 'Models', 'Views');
+
+    $folders = array(
+        'Controllers',
+        'Models',
+        'Views',
+    );
+
     foreach ($folders as $folder) {
         $file = dirname(__DIR__) . '/app/' . $folder . '/' . $className . '.php';
+
         if (is_file($file)) {
             require $file;
             return;
         }
     }
-});
+}
+
+spl_autoload_register('loadProjectClass');
 
 $view = new View(dirname(__DIR__) . '/app/Views', dirname(__DIR__) . '/app/Views/layouts');
 $router = new Router();
 
-set_exception_handler(function (\Throwable $exception) use ($view): void {
+function renderApplicationError(\Throwable $exception, View $view): void
+{
     $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
     error_log($exception->getMessage());
 
@@ -50,6 +65,10 @@ set_exception_handler(function (\Throwable $exception) use ($view): void {
         'primaryUrl' => '/',
         'primaryLabel' => 'Về trang chủ',
     ]);
+}
+
+set_exception_handler(function (\Throwable $exception) use ($view): void {
+    renderApplicationError($exception, $view);
 });
 
 $registerRoutes = require dirname(__DIR__) . '/config/routes.php';

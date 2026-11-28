@@ -1,6 +1,2 @@
-<?php if (!empty($successMessage)): ?>
-    <div class="flash-message flash-success" role="status"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span><?= \App\Helpers\ViewHelper::escape((string)$successMessage) ?></div>
-<?php endif; ?>
-<?php if (!empty($failureMessage)): ?>
-    <div class="flash-message flash-error" role="alert"><span class="material-symbols-outlined" aria-hidden="true">error</span><?= \App\Helpers\ViewHelper::escape((string)$failureMessage) ?></div>
-<?php endif; ?>
+<?php if (!empty($successMessage)): ?><div class="mx-auto my-4 flex w-[min(1240px,calc(100%-32px))] items-center gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold leading-6 text-green-800" role="status"><span class="material-symbols-outlined shrink-0 text-xl" aria-hidden="true">check_circle</span><?= \App\Helpers\ViewHelper::escape((string)$successMessage) ?></div><?php endif; ?>
+<?php if (!empty($failureMessage)): ?><div class="mx-auto my-4 flex w-[min(1240px,calc(100%-32px))] items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold leading-6 text-red-800" role="alert"><span class="material-symbols-outlined shrink-0 text-xl" aria-hidden="true">error</span><?= \App\Helpers\ViewHelper::escape((string)$failureMessage) ?></div><?php endif; ?>

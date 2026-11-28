@@ -10,8 +10,11 @@ use RuntimeException;
 
 final class Book
 {
-    public function __construct(private Database $database)
+    private Database $database;
+
+    public function __construct(Database $database)
     {
+        $this->database = $database;
     }
 
     public function findBySlug(string $slug): ?array
@@ -218,8 +221,12 @@ final class Book
             $params = ['slug' => $slug];
             if ($ignoreId !== null) $params['id'] = $ignoreId;
             $statement->execute($params);
-            if (!$statement->fetch()) return $slug;
-            $slug = $slugBase . '-' . $suffix++;
+            if (!$statement->fetch()) {
+                return $slug;
+            }
+
+            $slug = $slugBase . '-' . $suffix;
+            $suffix++;
         } while (true);
     }
 

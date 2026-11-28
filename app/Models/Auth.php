@@ -11,24 +11,51 @@ use RuntimeException;
 
 final class Auth
 {
-    public function __construct(private Database $database) {}
+    private Database $database;
+
+    public function __construct(Database $database)
+    {
+        $this->database = $database;
+    }
 
     public function authenticate(string $email, string $password): array
     {
         $email = trim($email);
-        $account = filter_var($email, FILTER_VALIDATE_EMAIL) ? (new User($this->database))->findByEmail($email) : null;
-        if (!$account || !password_verify($password, $account['password_hash'])) throw new RuntimeException('Email hoặc mật khẩu không đúng.');
-        if (empty($account['email_verified_at'])) throw new RuntimeException('Vui lòng xác thực email trước khi đăng nhập.');
+        $account = null;
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $userModel = new User($this->database);
+            $account = $userModel->findByEmail($email);
+        }
+
+        if (!$account || !password_verify($password, $account['password_hash'])) {
+            throw new RuntimeException('Email hoặc mật khẩu không đúng.');
+        }
+
+        if (empty($account['email_verified_at'])) {
+            throw new RuntimeException('Vui lòng xác thực email trước khi đăng nhập.');
+        }
+
         return $account;
     }
 
     public function register(string $name, string $email, string $password, string $referralCode = ''): array
     {
-        $name = trim($name); $email = trim($email); $referralCode = trim($referralCode);
-        if ($name === '' || mb_strlen($name) > 120 || !filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190 || strlen($password) < 8 || strlen($password) > 200) throw new RuntimeException('Vui lòng nhập tên, email hợp lệ và mật khẩu từ 8 đến 200 ký tự.');
+        $name = trim($name);
+        $email = trim($email);
+        $referralCode = trim($referralCode);
+        if ($name === '' || mb_strlen($name) > 120 || !filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190 || strlen($password) < 8 || strlen($password) > 200) {
+            throw new RuntimeException('Vui lòng nhập tên, email hợp lệ và mật khẩu từ 8 đến 200 ký tự.');
+        }
+
         $users = new User($this->database);
-        if ($users->findByEmail($email)) throw new RuntimeException('Email này đã được đăng ký.');
-        if ($referralCode !== '' && !$users->findByReferralCode($referralCode)) throw new RuntimeException('Mã giới thiệu không tồn tại.');
+        if ($users->findByEmail($email)) {
+            throw new RuntimeException('Email này đã được đăng ký.');
+        }
+
+        if ($referralCode !== '' && !$users->findByReferralCode($referralCode)) {
+            throw new RuntimeException('Mã giới thiệu không tồn tại.');
+        }
+
         $id = $users->create($name, $email, $password, $referralCode);
         (new MemberPoint($this->database))->earnForReferral($id);
         $account = $users->findById($id);
@@ -40,17 +67,36 @@ final class Auth
     public function forgotPassword(string $email): void
     {
         $email = trim($email);
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Vui lòng nhập email hợp lệ.');
-        $users = new User($this->database); $account = $users->findByEmail($email);
-        if ($account) $this->sendPasswordResetEmail($account['email'], $account['name'], $users->createPasswordResetToken((int)$account['id']));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('Vui lòng nhập email hợp lệ.');
+        }
+
+        $users = new User($this->database);
+        $account = $users->findByEmail($email);
+        if ($account) {
+            $token = $users->createPasswordResetToken((int)$account['id']);
+            $this->sendPasswordResetEmail($account['email'], $account['name'], $token);
+        }
     }
 
     public function resetPassword(string $token, string $password, string $confirmation): void
     {
-        if (trim($token) === '') throw new RuntimeException('Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
-        if (strlen($password) < 8 || strlen($password) > 200) throw new RuntimeException('Mật khẩu mới phải từ 8 đến 200 ký tự.');
-        if ($password !== $confirmation) throw new RuntimeException('Mật khẩu xác nhận không khớp.');
-        if (!(new User($this->database))->resetPassword($token, $password)) throw new RuntimeException('Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
+        if (trim($token) === '') {
+            throw new RuntimeException('Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
+        }
+
+        if (strlen($password) < 8 || strlen($password) > 200) {
+            throw new RuntimeException('Mật khẩu mới phải từ 8 đến 200 ký tự.');
+        }
+
+        if ($password !== $confirmation) {
+            throw new RuntimeException('Mật khẩu xác nhận không khớp.');
+        }
+
+        $updated = (new User($this->database))->resetPassword($token, $password);
+        if (!$updated) {
+            throw new RuntimeException('Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
+        }
     }
 
     public function verifyEmail(string $token): bool
@@ -66,15 +112,27 @@ final class Auth
 
     public function resendVerification(string $email): void
     {
-        $email = trim($email); $users = new User($this->database);
-        $account = filter_var($email, FILTER_VALIDATE_EMAIL) ? $users->findByEmail($email) : null;
-        if ($account && empty($account['email_verified_at'])) $this->sendVerificationEmail($account['email'], $account['name'], $users->createVerificationToken((int)$account['id']));
+        $email = trim($email);
+        $users = new User($this->database);
+        $account = null;
+
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $account = $users->findByEmail($email);
+        }
+
+        if ($account && empty($account['email_verified_at'])) {
+            $token = $users->createVerificationToken((int)$account['id']);
+            $this->sendVerificationEmail($account['email'], $account['name'], $token);
+        }
     }
 
     public function googleAuthorizationUrl(string $state): string
     {
         $config = (new SystemSetting($this->database))->googleConfig();
-        if ($config['client_id'] === '' || $config['client_secret'] === '') throw new RuntimeException('Đăng nhập bằng Google chưa được cấu hình.');
+        if ($config['client_id'] === '' || $config['client_secret'] === '') {
+            throw new RuntimeException('Đăng nhập bằng Google chưa được cấu hình.');
+        }
+
         return 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([
             'client_id'=>$config['client_id'], 'redirect_uri'=>$config['redirect_uri'], 'response_type'=>'code',
             'scope'=>'openid email profile', 'state'=>$state, 'access_type'=>'online', 'prompt'=>'select_account',
@@ -83,18 +141,31 @@ final class Auth
 
     public function googleAuthenticate(string $code, string $state, string $savedState): array
     {
-        if ($state === '' || $savedState === '' || !hash_equals($savedState, $state)) throw new RuntimeException('Phiên đăng nhập Google không hợp lệ.');
-        if ($code === '') throw new RuntimeException('Google không trả về mã đăng nhập.');
+        if ($state === '' || $savedState === '' || !hash_equals($savedState, $state)) {
+            throw new RuntimeException('Phiên đăng nhập Google không hợp lệ.');
+        }
+
+        if ($code === '') {
+            throw new RuntimeException('Google không trả về mã đăng nhập.');
+        }
         $config = (new SystemSetting($this->database))->googleConfig();
         $token = $this->googleRequest('https://oauth2.googleapis.com/token', ['code'=>$code,'client_id'=>$config['client_id'],'client_secret'=>$config['client_secret'],'redirect_uri'=>$config['redirect_uri'],'grant_type'=>'authorization_code']);
-        if (empty($token['access_token'])) throw new RuntimeException('Không lấy được token từ Google.');
+        if (empty($token['access_token'])) {
+            throw new RuntimeException('Không lấy được token từ Google.');
+        }
         $profile = $this->googleProfile((string)$token['access_token']);
-        if (empty($profile['sub']) || empty($profile['email']) || ($profile['email_verified'] ?? false) !== true) throw new RuntimeException('Tài khoản Google chưa cung cấp email đã xác thực.');
-        $users = new User($this->database); $account = $users->findByGoogleId((string)$profile['sub']);
+        if (empty($profile['sub']) || empty($profile['email']) || ($profile['email_verified'] ?? false) !== true) {
+            throw new RuntimeException('Tài khoản Google chưa cung cấp email đã xác thực.');
+        }
+
+        $users = new User($this->database);
+        $account = $users->findByGoogleId((string)$profile['sub']);
         if (!$account) {
             $account = $users->findByEmail((string)$profile['email']);
             if ($account) {
-                if (!empty($account['google_id']) && $account['google_id'] !== (string)$profile['sub']) throw new RuntimeException('Email này đã liên kết với tài khoản Google khác.');
+                if (!empty($account['google_id']) && $account['google_id'] !== (string)$profile['sub']) {
+                    throw new RuntimeException('Email này đã liên kết với tài khoản Google khác.');
+                }
                 $users->linkGoogleId((int)$account['id'], (string)$profile['sub']);
             } else {
                 $account = $users->findById($users->createFromGoogle((string)($profile['name'] ?? 'Google User'), (string)$profile['email'], (string)$profile['sub']));

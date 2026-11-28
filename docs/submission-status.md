@@ -1,30 +1,26 @@
 # Trạng thái hồ sơ WEB212
 
-Cập nhật: 2026-11-04. Môi trường kiểm tra: Laragon, Apache, PHP 8.4.26, MySQL local.
+Cập nhật: 2026-11-28. Phạm vi cập nhật: source và tài liệu trong workspace hiện tại.
 
 ## Đã có
 
 - Mã nguồn PHP OOP/MVC, router tập trung và `.htaccess`.
-- Database SQL gồm schema và seed; 8 danh mục, 40 sách.
-- Đăng ký/đăng nhập, session, CSRF và phân quyền khách hàng/quản trị viên.
-- CRUD sách/danh mục, giỏ hàng Session, đặt hàng COD, tồn kho transaction.
-- Lịch sử đơn hàng, quản lý đơn hàng và khách hàng trong Admin.
-- Tài liệu SRS, Use Case, Wireframe, ERD, MVC, Test Report, Deployment và phân công.
-- SQL nguồn: `database/schema.sql`, `database/seed.sql`.
-- Hồ sơ đã xuất: `deliverables/bao-cao-web212-moc-ban.docx`, `.pdf`, `slide-bao-ve-web212-moc-ban.pptx`.
-- Ma trận nghiệm thu: `docs/acceptance-matrix.md`.
+- Database schema, seed và migrations `002`–`017`.
+- Tài khoản, email verification, password reset và Google OAuth flow.
+- Cart, checkout, COD/PayOS flow, tồn kho transaction, voucher, review, wishlist và điểm thành viên.
+- Lịch sử đơn hàng, quản lý đơn hàng/khách hàng/thanh toán/cài đặt trong Admin.
+- Tài liệu SRS, Use Case, Wireframe, ERD, MVC, kiểm tra, triển khai và phân công.
+- PHP lint 95/95, JavaScript syntax 5/5 và `git diff --check` đã PASS.
 
 ## Chưa thể xác nhận trong local
 
-- Live URL và hosting thật: đã triển khai tại `https://nhom9.khag.tech/` và đã kiểm tra HTTP.
-- Voucher và đánh giá sách: đã triển khai ở bản hiện tại. Thanh toán online, email và biến thể sách: chưa triển khai; biến thể đang `PENDING TEACHER CONFIRMATION`.
-- PDF/DOCX/PPTX hồ sơ local: đã xuất trong thư mục `deliverables/` từ nội dung đã kiểm chứng.
-- Tài khoản Admin production đã có; email được ghi trong `docs/deployment.md`, mật khẩu không lưu trong repository.
+- HTTP route, database E2E, responsive browser, OAuth, SMTP và PayOS runtime chưa được xác nhận trong lần cập nhật này.
+- Credential và live URL production không được ghi trong repository.
+- Biến thể bìa mềm/bìa cứng chưa thuộc schema hiện tại.
 
 ## Kiểm thử gần nhất
 
-- PHP lint: 53/53 file PASS.
-- Route public: `/`, `/books`, `/categories/van-hoc`, `/cart`, `/login` trả 200.
-- Route không tồn tại trả 404.
-- Admin sau đăng nhập: dashboard, sách, danh mục, đơn hàng, khách hàng đều trả 200.
-- `/app/`, `/config/`, `/storage/`, `/.env` đều trả 404.
+- PHP lint: 95/95 file PASS.
+- JavaScript syntax: 5/5 file PASS.
+- `git diff --check`: PASS.
+- Runtime route và security path: cần chạy lại khi PHP/Apache và database được bật.

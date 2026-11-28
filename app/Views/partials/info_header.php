@@ -1,5 +1,1 @@
-<div class="container info-hero">
-    <p class="eyebrow"><?= htmlspecialchars($infoEyebrow ?? 'Thông tin', ENT_QUOTES, 'UTF-8') ?></p>
-    <h1><?= htmlspecialchars($infoHeading ?? ($title ?? ''), ENT_QUOTES, 'UTF-8') ?></h1>
-    <p class="lead"><?= htmlspecialchars($infoLead ?? '', ENT_QUOTES, 'UTF-8') ?></p>
-</div>
+<header class="mx-auto max-w-[1240px] px-4 pb-6 pt-8 sm:px-6 lg:px-8 lg:pt-10"><p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-orange-700"><?= htmlspecialchars($infoEyebrow ?? 'Thông tin', ENT_QUOTES, 'UTF-8') ?></p><h1 class="max-w-3xl text-3xl font-bold tracking-tight text-blue-950 sm:text-4xl"><?= htmlspecialchars($infoHeading ?? ($title ?? ''), ENT_QUOTES, 'UTF-8') ?></h1><p class="mt-3 max-w-2xl text-[15px] leading-7 text-slate-500"><?= htmlspecialchars($infoLead ?? '', ENT_QUOTES, 'UTF-8') ?></p></header>

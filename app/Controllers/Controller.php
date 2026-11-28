@@ -6,12 +6,18 @@ namespace App\Core;
 
 abstract class Controller
 {
-    public function __construct(protected View $view)
+    protected View $view;
+
+    public function __construct(View $view)
     {
+        $this->view = $view;
     }
 
     protected function database(): Database
     {
-        return new Database(require dirname(__DIR__, 2) . '/config/database.php');
+        $configFile = dirname(__DIR__, 2) . '/config/database.php';
+        $config = require $configFile;
+
+        return new Database($config);
     }
 }

@@ -8,8 +8,11 @@ use RuntimeException;
 
 final class PayOSService
 {
-    public function __construct(private array $config)
+    private array $config;
+
+    public function __construct(array $config)
     {
+        $this->config = $config;
     }
 
     public function isConfigured(): bool
@@ -70,7 +73,11 @@ final class PayOSService
         foreach ($data as $key => $value) {
             if ($value === null || $value === 'null' || $value === 'undefined') $value = '';
             if (is_array($value)) {
-                foreach ($value as &$element) if (is_array($element)) ksort($element);
+                foreach ($value as &$element) {
+                    if (is_array($element)) {
+                        ksort($element);
+                    }
+                }
                 unset($element);
                 $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             } elseif (is_bool($value)) {
@@ -85,7 +92,9 @@ final class PayOSService
     private function request(string $path, array $payload): array
     {
         $handle = curl_init(rtrim($this->config['api_url'], '/') . $path);
-        if ($handle === false) throw new RuntimeException('Không khởi tạo được kết nối PayOS.');
+        if ($handle === false) {
+            throw new RuntimeException('Không khởi tạo được kết nối PayOS.');
+        }
         curl_setopt_array($handle, [
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
@@ -101,9 +110,14 @@ final class PayOSService
         $status = (int)curl_getinfo($handle, CURLINFO_HTTP_CODE);
         $error = curl_error($handle);
         curl_close($handle);
-        if ($body === false || $error !== '') throw new RuntimeException('Không thể kết nối PayOS: ' . $error);
+        if ($body === false || $error !== '') {
+            throw new RuntimeException('Không thể kết nối PayOS: ' . $error);
+        }
+
         $decoded = json_decode((string)$body, true);
-        if (!is_array($decoded)) throw new RuntimeException('PayOS trả về dữ liệu không hợp lệ (HTTP ' . $status . ').');
+        if (!is_array($decoded)) {
+            throw new RuntimeException('PayOS trả về dữ liệu không hợp lệ (HTTP ' . $status . ').');
+        }
         return $decoded;
     }
 }

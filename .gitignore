@@ -1,6 +1,42 @@
+# Environment and secrets
 .env
+.env.*
+!.env.example
+/storage/app.key
+
+# PHP dependencies and local tooling
 /vendor/
+/.phpunit.result.cache
+/coverage/
+
+# Node/Tailwind dependencies and caches
 /node_modules/
+/.npm/
+/.parcel-cache/
+/.vite/
+
+# Runtime data
 /storage/logs/
 /storage/cache/
-/storage/app.key
+/storage/returns/*
+!/storage/returns/.htaccess
+
+# Local IDE and operating-system files
+.idea/
+.vscode/
+*.code-workspace
+.fleet/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary/editor files
+*.tmp
+*.temp
+*.swp
+*.swo
+*.log
+~$*
+
+# Keep generated production CSS tracked because it is deployed by Apache.
+# public/assets/css/tailwind.generated.css

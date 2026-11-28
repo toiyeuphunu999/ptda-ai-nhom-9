@@ -1,5 +1,7 @@
 # BOOKSTORE WEB212 — AI CODING MASTER SPEC V6
 
+> Cập nhật hiện trạng: 2026-11-28. Các phần blueprint/V5 bên dưới là quy tắc và lịch sử quyết định ban đầu. Khi mô tả trạng thái code thực tế, ưu tiên `README.md`, `docs/acceptance-matrix.md`, `docs/erd.md`, `database/schema.sql` và `config/routes.php`.
+
 > **Trạng thái:** Đặc tả triển khai GIAI ĐOẠN UI + NỀN TẢNG, chưa cho phép ghi mã nguồn. **Quy tắc tối cao:** đọc/đánh giá trước, trình bày CHANGE-ID, chờ người dùng phê duyệt rõ ràng rồi mới thay đổi đúng phạm vi. Không suy diễn sự im lặng là đồng ý.
 >
 > **Nguồn yêu cầu:** Guide.pdf môn WEB212. Các quy tắc mở rộng trong tài liệu này là lựa chọn kỹ thuật cho đề tài bán sách, không được trình bày như yêu cầu nguyên văn của giảng viên.
@@ -39,7 +41,7 @@ Dự án cần có mã nguồn sạch, cấu trúc dễ hiểu để sinh viên 
 - **Hosting:** Tương thích Apache Shared Hosting/cPanel, không phụ thuộc Node.js runtime trên production.
 - **Không dùng:** Laravel, WordPress hoặc framework PHP thay thế phần MVC tự xây dựng.
 
-**Lưu ý:** Đây là yêu cầu kiến trúc cho sản phẩm cuối cùng; giai đoạn này chưa cần tạo kết nối PDO hay truy vấn CSDL.
+**Lưu ý lịch sử:** Đây là yêu cầu kiến trúc ban đầu. Project hiện đã có kết nối PDO, schema, migrations và truy vấn; trạng thái thật xem `README.md` và `docs/acceptance-matrix.md`.
 
 ## 4. Cấu trúc thư mục chuẩn triển khai (đường dẫn cụ thể; chỉ tạo sau phê duyệt)
 
@@ -53,8 +55,13 @@ bookstore-web212/
 │   │   ├── AuthPageController.php
 │   │   ├── CartPageController.php
 │   │   ├── AccountPageController.php
-│   │   └── AdminPageController.php
-│   ├── Models/                     # Để trống ở giai đoạn UI; chưa tạo model giả
+│   │   ├── AdminDashboardController.php
+│   │   ├── AdminCatalogController.php
+│   │   ├── AdminOrderController.php
+│   │   ├── AdminCustomerController.php
+│   │   ├── AdminVoucherController.php
+│   │   └── AdminSettingsController.php
+│   ├── Models/                     # PDO, nghiệp vụ và transaction hiện tại
 │   ├── Views/
 │   │   ├── layouts/
 │   │   │   ├── shop.php
@@ -109,7 +116,7 @@ bookstore-web212/
 │   ├── robots.txt
 │   └── assets/
 │       ├── css/
-│       │   └── app.css             # CSS build, không dùng Play CDN production
+│       │   └── tailwind.generated.css # CSS build từ resources/css/input.css
 │       ├── js/
 │       │   └── app.js              # Chỉ UI: menu, tương tác trình bày
 │       └── images/
@@ -211,7 +218,7 @@ Chuẩn bị khoảng **40 sách mẫu** để giao diện trông thực tế. M
 - Escape dữ liệu khi render HTML.
 - Không hiển thị lỗi PHP nhạy cảm trong production.
 - Cấu hình development/production riêng.
-- Chuẩn bị kiến trúc cho session, validation, CSRF và phân quyền về sau nhưng **chưa triển khai chức năng**.
+- Session, validation, CSRF và phân quyền đã được triển khai; mọi thay đổi mới phải giữ các lớp bảo vệ này.
 
 ## 10. SEO và hiệu năng cơ bản
 
@@ -222,9 +229,9 @@ Chuẩn bị khoảng **40 sách mẫu** để giao diện trông thực tế. M
 - Alt cho ảnh, lazy loading, tối ưu CSS/JS và tài nguyên tĩnh.
 - Không cần triển khai SEO nâng cao.
 
-## 11. Thiết kế Database dự kiến (chưa thực thi)
+## 11. Thiết kế Database dự kiến (lịch sử blueprint)
 
-Chỉ đề xuất bảng và quan hệ ở mức tài liệu:
+Phần này là thiết kế ban đầu, không còn là trạng thái hiện tại của project. Schema thực tế nằm tại `database/schema.sql` và migrations `002`–`017`; xem `docs/erd.md`.
 
 - `users`
 - `categories`
@@ -232,9 +239,9 @@ Chỉ đề xuất bảng và quan hệ ở mức tài liệu:
 - `orders`
 - `order_items`
 
-Nêu các primary key, foreign key dự kiến và hướng chuẩn hóa 1NF–3NF. **Chưa tạo database, bảng SQL, seed, kết nối PDO hoặc CRUD.** Giỏ hàng dự kiến dùng PHP Session khi triển khai chức năng ở giai đoạn sau.
+Nội dung dưới đây chỉ giữ để giải thích quyết định ban đầu. Project hiện đã có database, seed, PDO, CRUD và session cart.
 
-## 12. Tuyệt đối chưa làm chức năng
+## 12. Tuyệt đối chưa làm chức năng (lịch sử blueprint)
 
 Không triển khai:
 
@@ -246,7 +253,7 @@ Không triển khai:
 - Email, voucher, API nghiệp vụ, truy vấn MySQL.
 - AI recommendation hoặc các tích hợp nâng cao.
 
-Nếu cần minh họa, chỉ hiển thị dữ liệu mẫu và ghi rõ đó là demo UI.
+Các gạch đầu dòng trên mô tả phạm vi trước khi triển khai và không được dùng làm checklist hiện tại. Trạng thái hiện tại phải đối chiếu `README.md` và `docs/acceptance-matrix.md`.
 
 ## 13A. Quy chuẩn code và giao diện: đúng đề tài, không mang dấu ấn AI-generated
 
@@ -311,29 +318,29 @@ Nếu cần minh họa, chỉ hiển thị dữ liệu mẫu và ghi rõ đó l�
 |---|---|---|---|
 | `/` | `HomeController::index` | `shop/home.php` | Sách nổi bật mẫu |
 | `/books` | `BookController::index` | `shop/books.php` | Danh sách mẫu |
-| `/books/{slug}` | `BookController::show` | `shop/book_detail.php` | Sách mẫu theo slug; không có → 404 |
+| `/books/{slug}` | `BookController::detail` | `shop/book_detail.php` | Sách theo slug; không có → 404 |
 | `/categories/{slug}` | `BookController::category` | `shop/category.php` | Danh mục mẫu |
 | `/search` | `BookController::search` | `shop/search.php` | Chỉ UI tìm kiếm; không giả truy vấn DB |
-| `/cart` | `CartPageController::index` | `shop/cart.php` | Giỏ hàng minh họa |
-| `/checkout` | `CartPageController::checkout` | `shop/checkout.php` | Checkout COD minh họa |
-| `/login` | `AuthPageController::login` | `shop/login.php` | Form demo |
-| `/register` | `AuthPageController::register` | `shop/register.php` | Form demo |
-| `/account` | `AccountPageController::index` | `shop/account.php` | Thông tin giả lập ghi rõ demo |
-| `/orders` | `AccountPageController::orders` | `shop/order_history.php` | Lịch sử mẫu |
+| `/cart` | `CartPageController::cart` | `shop/cart.php` | Giỏ hàng Session |
+| `/checkout` | `CartPageController::checkout` / `placeOrder` | `shop/checkout.php` | Checkout COD/PayOS |
+| `/login` | `AuthPageController::login` | `shop/login.php` | Đăng nhập thật |
+| `/register` | `AuthPageController::register` | `shop/register.php` | Đăng ký thật |
+| `/account` | `AccountPageController::account` | `shop/account.php` | Hồ sơ và địa chỉ của user |
+| `/orders` | `CartPageController::orderHistory` | `shop/order_history.php` | Lịch sử của user |
 | `/about` | `PageController::about` | `shop/about.php` | Nội dung giới thiệu mẫu |
 | `/contact` | `PageController::contact` | `shop/contact.php` | Form chưa gửi |
-| `/admin` | `AdminPageController::dashboard` | `admin/dashboard.php` | Số liệu demo |
-| `/admin/books` | `AdminPageController::books` | `admin/books.php` | Bảng sách mẫu |
-| `/admin/books/create` | `AdminPageController::bookCreate` | `admin/book_form.php` | Form mẫu |
-| `/admin/books/{id}/edit` | `AdminPageController::bookEdit` | `admin/book_form.php` | Form mẫu |
-| `/admin/categories` | `AdminPageController::categories` | `admin/categories.php` | Bảng danh mục mẫu |
-| `/admin/orders` | `AdminPageController::orders` | `admin/orders.php` | Bảng đơn hàng mẫu |
-| `/admin/customers` | `AdminPageController::customers` | `admin/customers.php` | Bảng khách hàng mẫu |
+| `/admin` | `AdminDashboardController::dashboard` | `admin/dashboard.php` | Dashboard dữ liệu database |
+| `/admin/books` | `AdminCatalogController::books` | `admin/books.php` | Quản lý sách |
+| `/admin/books/create` | `AdminCatalogController::bookCreate` | `admin/book_form.php` | Tạo sách |
+| `/admin/books/{id}/edit` | `AdminCatalogController::bookEdit` | `admin/book_form.php` | Sửa sách |
+| `/admin/categories` | `AdminCatalogController::categories` | `admin/categories.php` | Quản lý danh mục |
+| `/admin/orders` | `AdminOrderController::orders` | `admin/orders.php` | Quản lý đơn |
+| `/admin/customers` | `AdminCustomerController::customers` | `admin/customers.php` | Quản lý khách hàng |
 
-- Chỉ đăng ký các route GET hiển thị UI trong giai đoạn này. POST/PUT/PATCH/DELETE nghiệp vụ chưa có; không tạo endpoint nhận dữ liệu hoặc thông báo thành công giả.
+- `config/routes.php` đăng ký cả GET và POST cho nghiệp vụ; mọi POST phải CSRF, validation và kiểm tra quyền ở server.
 - Route tĩnh phải được ưu tiên trước route tham số; slug chỉ chấp nhận ký tự hợp lệ, không được dùng làm đường dẫn file tùy ý.
 - URL dùng slash đầu và **không có slash cuối** ngoại trừ `/`; quy tắc redirect canonical nếu thực hiện phải được đề xuất và duyệt.
-- `/admin` chỉ là bản xem trước **không bảo mật bằng authentication**: không đặt dữ liệu thật, không công khai trên production trước khi có phân quyền thực sự. Không gọi đây là admin đã được bảo vệ.
+- `/admin` và toàn bộ `/admin/*` yêu cầu session có `role=admin`; không coi client-side UI là lớp bảo mật.
 - `public/` phải là DocumentRoot; nếu hosting không hỗ trợ đổi DocumentRoot, AI phải đề xuất phương án triển khai riêng và chờ duyệt, không tự chuyển toàn bộ app vào `public_html`.
 
 ## V5.2. Hợp đồng trách nhiệm cho từng file nền tảng
@@ -345,10 +352,10 @@ Nếu cần minh họa, chỉ hiển thị dữ liệu mẫu và ghi rõ đó l�
 - `app/Views/View.php`: render view với layout, escape output tại điểm hiển thị, không tự lấy dữ liệu DB.
 - `app/Views/ViewHelper.php`: helper tối thiểu như `escape(string)` và định dạng VNĐ; không trộn logic nghiệp vụ.
 - Dữ liệu sách và danh mục hiện lấy từ `app/Models/` và database; không còn dùng mảng dữ liệu demo rời.
-- `config/app.php`: tên website, base URL theo môi trường, chế độ demo; không chứa mật khẩu/secret.
-- `resources/css/input.css` → `public/assets/css/app.css`: nguồn và đầu ra CSS rõ ràng; Tailwind CLI là build-time, không phải runtime hosting.
+- `config/routes.php`: khởi tạo controller và khai báo route; không chứa SQL hoặc secret.
+- `resources/css/input.css` → `public/assets/css/tailwind.generated.css`: nguồn và đầu ra CSS; Tailwind CLI là build-time, không phải runtime hosting.
 - `public/assets/js/app.js`: chỉ menu mobile, trạng thái hiển thị thuần UI; không gửi request nghiệp vụ, không ghi localStorage giả giỏ hàng.
-- `README.md`: yêu cầu PHP/Apache, cách chạy local, build CSS khi được duyệt, cấu hình DocumentRoot, danh sách route demo, giới hạn chưa làm.
+- `README.md`: yêu cầu PHP/Apache, cách chạy local, build CSS, cấu hình DocumentRoot, route hiện tại và giới hạn runtime.
 - `.env.example`: chỉ các khóa cấu hình minh họa, không chứa credential thật. Không tự tạo `.env` chứa thông tin nhạy cảm.
 - `composer.json` và `package.json`: chỉ tạo nếu thật sự cần cho autoload/build đã duyệt; khóa phiên bản dependency, không cài package thừa.
 
@@ -383,7 +390,7 @@ Lệnh test/build có thể ghi cache, snapshot hoặc báo cáo chỉ được 
 
 ## V5.6. Tài liệu đồ án — đường dẫn và phạm vi rõ ràng
 
-Sau khi được duyệt riêng, các tài liệu cần chuẩn bị: `docs/srs.md` (yêu cầu và User Stories), `docs/use-cases.md`, `docs/wireframes/` (bản vẽ UI), `docs/erd.md` (ERD dự kiến), `docs/mvc-architecture.md`, `docs/test-report.md`, `docs/deployment.md`, `docs/team-roles.md` (phân công và chữ ký khi làm nhóm). Đây **không** phải yêu cầu tạo ngay trong giai đoạn UI. Cuối môn còn cần báo cáo PDF/DOCX, slide PPTX, ZIP mã nguồn, SQL và Live URL + tài khoản Admin demo theo Guide.pdf; chưa được báo hoàn thành các đầu ra đó ở giai đoạn này.
+Tài liệu hiện có: `docs/srs.md`, `docs/use-cases.md`, `docs/wireframes/`, `docs/erd.md`, `docs/mvc-architecture.md`, `docs/acceptance-matrix.md`, `docs/deployment.md`, `docs/team-roles.md` và `database/README.md`.
 
 ## V5.7. Quy trình phê duyệt và triển khai thực tế (không tự chạy)
 
@@ -461,7 +468,7 @@ TRẠNG THÁI: CHỜ PHÊ DUYỆT
 
 **Lưu ý phạm vi đề tài:** Trang 4 Guide.pdf gợi ý E-Commerce với quản lý danh mục/sản phẩm/biến thể size-màu, giỏ Session, đặt hàng, thanh toán, tài khoản và phân quyền. Với sách, không tự áp đặt size/màu; phải xin giảng viên xác nhận cách xử lý biến thể (ví dụ bìa mềm/bìa cứng hoặc phiên bản sách) ở giai đoạn chức năng. Chưa có xác nhận thì ghi `PENDING TEACHER CONFIRMATION`.
 
-**Đầu ra tài liệu dự kiến, chưa tạo khi chưa duyệt:** `docs/srs.md`, `docs/use-cases.md`, `docs/wireframes/`, `docs/erd.md`, `docs/mvc-architecture.md`, `docs/test-report.md`, `docs/deployment.md`, `docs/team-roles.md`. Không đánh dấu hoàn thành tài liệu hay chức năng chỉ vì có tên trong blueprint.
+**Đầu ra tài liệu hiện có:** `docs/srs.md`, `docs/use-cases.md`, `docs/wireframes/`, `docs/erd.md`, `docs/mvc-architecture.md`, `docs/acceptance-matrix.md`, `docs/deployment.md`, `docs/team-roles.md`. Không đánh dấu runtime hoặc production PASS chỉ vì tài liệu có mô tả; phải có bằng chứng kiểm tra tương ứng.
 
 ## 19. Quality Gate và định nghĩa hoàn thành giai đoạn UI
 

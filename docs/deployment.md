@@ -2,70 +2,75 @@
 
 ## Local với Laragon
 
-1. Đặt mã nguồn trong thư mục Laragon, ví dụ `C:\laragon\www`.
-2. Đặt Apache DocumentRoot vào thư mục `public` của dự án.
-3. Bật Apache trong Laragon.
-4. Mở `http://localhost/`.
-5. Kiểm tra route `/`, `/books` và `/khong-ton-tai`.
+1. Đặt project trong `C:\laragon\www`.
+2. Trỏ Apache DocumentRoot vào thư mục `public/`.
+3. Bật Apache và MySQL trong Laragon.
+4. Tạo database `bookstore_web212`.
+5. Chạy `database/schema.sql`, sau đó chạy migration `002` đến `017` nếu database là bản nâng cấp.
+6. Chạy `database/seed.sql` chỉ trên database local mới nếu cần dữ liệu mẫu.
+7. Sao chép `.env.example` thành `.env`, tạo `APP_KEY` đủ dài và điền database credentials.
+8. Mở domain Laragon hoặc `http://localhost/`.
 
-## Khởi tạo database
+Có thể chạy tạm bằng PHP built-in server:
 
-Trong MySQL Laragon, tạo database `bookstore_web212`, sau đó chạy lần lượt `database/schema.sql` và `database/seed.sql`. Không chạy lại seed trên production nếu chưa kiểm tra dữ liệu hiện có.
+```text
+php -S localhost:8000 -t public
+```
 
-Nếu database đã tồn tại, chạy thêm các migration `database/migrations/012_user_contact_address.sql`, `database/migrations/013_order_shipping_email.sql`, `database/migrations/014_customer_management.sql`, `database/migrations/015_user_addresses.sql` và `database/migrations/016_wishlists.sql` để bật thông tin nhận hàng, email trong đơn, quản lý khách hàng, nhiều địa chỉ giao hàng và danh sách yêu thích.
+## Apache/cPanel
 
-## Apache Shared Hosting/cPanel
+- DocumentRoot phải trỏ vào `public/`.
+- Bật `mod_rewrite` và giữ `public/.htaccess`.
+- Dùng PHP 8.x với PDO MySQL, cURL và OpenSSL.
+- Không đưa `app/`, `config/`, `database/` hoặc `storage/` ra public.
+- Không upload `.env`, `storage/app.key`, log, cache, credential hoặc runtime upload.
+- Kiểm tra quyền ghi tối thiểu cho thư mục `storage/returns` nếu tính năng ảnh đổi trả được bật.
 
-- Nếu hosting cho phép, đặt DocumentRoot vào thư mục `public/`.
-- Nếu không đổi được DocumentRoot, phải lập phương án triển khai riêng và kiểm tra lại quyền truy cập trước khi dùng; không tự ý chuyển toàn bộ thư mục nội bộ ra public.
-- Bật URL rewriting và giữ `.htaccess` trong `public/`.
-- Không upload `.env` thật, credential, log hoặc thư mục dependency không cần thiết.
-- Cấu hình PHP 8.x và tạo database riêng ở giai đoạn chức năng.
+## Tạo tài khoản admin
 
-## Tạo tài khoản Admin
-
-Không có mật khẩu Admin mặc định trong mã nguồn. Sau khi tạo database, chạy lệnh tại thư mục project:
+Không có admin mặc định. Chạy tại thư mục project:
 
 ```text
 php tools/create_admin.php
 ```
 
-Nhập tên, email và mật khẩu riêng cho môi trường cần triển khai. Không commit credential vào Git.
+Nhập thông tin riêng cho môi trường cần triển khai. Không commit mật khẩu.
 
-## Production đã triển khai
+## Cấu hình tích hợp
 
-- Live URL: `https://nhom9.khag.tech/`
-- Admin production email: `admin@nhom9.com`
-- Mật khẩu: bàn giao riêng, không lưu trong repository hoặc tài liệu công khai.
-- Kiểm tra HTTP gần nhất: trang chủ, route sách/danh mục/tìm kiếm, asset, 404 và 5 màn hình Admin đều đạt.
-- Dashboard Admin đọc doanh thu trực tiếp từ database; đơn `cancelled` không được tính vào doanh thu.
+Các biến môi trường mẫu nằm trong `.env.example`.
 
-## Cập nhật database sau khi nâng cấp
+### Google OAuth
 
-Nếu database đã tồn tại từ bản trước, chạy một lần `database/migrations/002_reviews_vouchers.sql` trong phpMyAdmin. Migration tạo bảng `reviews`, `vouchers` và bổ sung thông tin giảm giá vào `orders`. Database mới thì chạy `database/schema.sql` từ đầu.
-
-Để cập nhật nhà xuất bản cho 40 sách hiện có, chạy thêm một lần `database/migrations/003_real_publishers.sql`. Không cần chạy lại toàn bộ seed trên production.
-
-## Cấu hình thanh toán PayOS
-
-Ứng dụng hỗ trợ COD và chuyển khoản online qua PayOS/VietQR. Tạo kênh thanh toán tại `https://my.payos.vn`, sau đó khai báo các biến môi trường sau trên máy chủ; không ghi giá trị thật vào Git:
+Khai báo `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` và `GOOGLE_REDIRECT_URI`. Redirect URI phải trùng tuyệt đối với cấu hình Google Cloud Console, ví dụ:
 
 ```text
-APP_URL=https://ten-mien-cua-ban.vn
-PAYOS_CLIENT_ID=...
-PAYOS_API_KEY=...
-PAYOS_CHECKSUM_KEY=...
-PAYOS_API_URL=https://api-merchant.payos.vn
+http://localhost/auth/google/callback
 ```
 
-Đặt webhook của kênh PayOS tới:
+### SMTP
+
+Khai báo `MAIL_SMTP_HOST`, `MAIL_SMTP_PORT`, `MAIL_SMTP_USERNAME`, `MAIL_SMTP_PASSWORD`, `MAIL_SMTP_ENCRYPTION`, `MAIL_FROM` và `MAIL_FROM_NAME`. Có thể quản lý các giá trị này tại `/admin/settings` sau khi cấu hình `APP_KEY`.
+
+### PayOS/VietQR
+
+Khai báo `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, `PAYOS_CHECKSUM_KEY`, `PAYOS_API_URL` và `APP_URL`. Webhook production có dạng:
 
 ```text
 https://ten-mien-cua-ban.vn/payment/payos/webhook
 ```
 
-Luồng hoạt động: khách chọn PayOS tại `/checkout` → ứng dụng tạo payment link → chuyển tới `checkoutUrl` của PayOS → PayOS gọi webhook đã xác thực chữ ký HMAC-SHA256 → ứng dụng cập nhật `payments` và trạng thái đơn hàng. `returnUrl/cancelUrl` chỉ dùng để hiển thị kết quả cho người dùng; webhook mới là nguồn xác nhận giao dịch chính thức.
+Webhook phải truy cập được từ Internet, dùng HTTPS và được PayOS ký hợp lệ. `returnUrl`/`cancelUrl` chỉ phục vụ hiển thị; webhook mới là nguồn xác nhận thanh toán.
 
-Trước khi bật production, kiểm tra PHP có extension `curl`, HTTPS hoạt động, webhook truy cập được từ Internet và chạy thử một giao dịch nhỏ trên kênh PayOS.
+## Sau khi deploy
 
-Sau khi chạy migration `005_system_settings.sql` và `006_repair_sales_reports.sql`, Admin có thể vào `/admin/settings` để nhập thông tin cửa hàng và PayOS. Cần cấu hình `APP_KEY` trước khi lưu các khóa PayOS; khóa được mã hóa trong bảng `system_settings`.
+Kiểm tra tối thiểu:
+
+- Trang chủ, sách, danh mục, tìm kiếm và 404.
+- Đăng ký/đăng nhập, CSRF và quyền `/admin`.
+- Cart, checkout, tạo đơn và tồn kho.
+- `/admin/orders`, `/admin/payments`, `/admin/settings`.
+- Google callback, SMTP gửi email và PayOS webhook nếu đã cấu hình.
+- Không có stack trace, credential hoặc file nội bộ bị lộ qua HTTP.
+
+Không ghi live URL, tài khoản hoặc kết quả production vào tài liệu nếu chưa kiểm tra ở lần deploy tương ứng.

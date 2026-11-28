@@ -8,7 +8,7 @@ Mộc Bản là website bán sách trực tuyến viết bằng PHP 8.x theo ki�
 
 Khách vãng lai có thể xem sách, danh mục, tìm kiếm và chi tiết sách. Khách hàng có tài khoản có thể quản lý giỏ hàng Session, đặt đơn COD và xem lịch sử đơn. Quản trị viên có thể quản lý sách, danh mục, đơn hàng và khách hàng.
 
-Thanh toán online và email chưa nằm trong phạm vi phát hành hiện tại. Voucher và đánh giá sách đã được tích hợp; biến thể bìa mềm/bìa cứng cần xác nhận nghiệp vụ trước khi triển khai.
+Voucher, đánh giá sách, nhiều địa chỉ, điểm thành viên, Google OAuth, SMTP và PayOS đã có phần triển khai trong source. Các tích hợp ngoài cần credential và kiểm tra runtime riêng; biến thể bìa mềm/bìa cứng chưa thuộc schema hiện tại.
 
 ## 3. Kiến trúc và công nghệ
 
@@ -16,8 +16,8 @@ Thanh toán online và email chưa nằm trong phạm vi phát hành hiện tạ
 - `app/Controllers`: điều phối request.
 - `app/Models`: truy vấn PDO và transaction.
 - `app/Views`: layout, partial và màn hình HTML.
-- `app/Controllers`, `app/Models`, `app/Views`: route/controller, dữ liệu và giao diện.
-- Apache `.htaccess`, PHP OOP, MySQL, PDO Prepared Statements, CSS/JavaScript thuần.
+- `config/routes.php`: hợp đồng route và controller.
+- Apache `.htaccess`, PHP OOP, MySQL, PDO Prepared Statements, Tailwind CSS build-time và JavaScript first-party.
 
 ## 4. Cơ sở dữ liệu
 
@@ -25,7 +25,7 @@ Các bảng `users`, `categories`, `books`, `orders`, `order_items` được li�
 
 ## 5. Kiểm thử
 
-53 file PHP đã qua lint. Route shop, route admin sau xác thực, 404, asset và chặn thư mục nội bộ đã được kiểm tra qua HTTP trên Laragon. Smoke test giỏ hàng, CSRF, transaction đơn hàng và rollback đã đạt.
+95 file PHP và 5 file JavaScript đã qua static lint/syntax ở workspace hiện tại. `git diff --check` cũng PASS. HTTP route, database E2E, OAuth, SMTP và PayOS runtime cần được chạy trong môi trường server/database tương ứng; không ghi nhận chúng là PASS nếu chưa chạy.
 
 ## 6. Hướng dẫn cài đặt
 
@@ -33,8 +33,8 @@ Các bảng `users`, `categories`, `books`, `orders`, `order_items` được li�
 
 Tạo Admin bằng `php tools/create_admin.php`. Không commit mật khẩu hoặc `.env` thật.
 
-Website production đã triển khai tại `https://nhom9.khag.tech/`. Tài khoản Admin production được bàn giao riêng; không ghi mật khẩu trong source.
+Không ghi live URL hoặc credential production vào tài liệu khi chưa có bằng chứng deploy tương ứng. Tài khoản admin luôn được tạo riêng bằng `php tools/create_admin.php`.
 
 ## 7. Hạn chế và hướng phát triển
 
-Thanh toán online, gửi email, API nghiệp vụ và biến thể sách là các hạng mục mở rộng cần quyết định nghiệp vụ hoặc tích hợp dịch vụ tương ứng. Voucher và đánh giá sách đã được tích hợp trong bản hiện tại.
+Gateway thanh toán, SMTP và Google OAuth cần credential/endpoint hợp lệ và test runtime riêng. Biến thể sách chưa thuộc schema. Voucher, đánh giá, wishlist, địa chỉ, điểm thành viên và quản lý khách hàng đã có trong bản hiện tại.

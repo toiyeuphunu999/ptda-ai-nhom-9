@@ -1,57 +1,67 @@
 # ERD — Nhà sách Mộc Bản
 
-## Quan hệ
+Tài liệu này mô tả schema thực tế trong `database/schema.sql` sau các migration `002`–`017`. Báo cáo hiện chạy bằng truy vấn trong `app/Models/Order.php`; các view báo cáo trong SQL chỉ là mẫu comment, không được tạo tự động.
 
-- `categories` 1:N `books` qua `books.category_id`; RESTRICT khi xóa category.
-- `users` 1:N `orders` qua `orders.user_id`; RESTRICT khi xóa user có lịch sử đơn.
-- `orders` 1:N `order_items` qua `order_items.order_id`; CASCADE khi xóa order.
-- `books` 1:N `order_items` qua `order_items.book_id`; RESTRICT để giữ lịch sử bán hàng.
-- `users` 1:N `reviews` qua `reviews.user_id`; CASCADE.
-- `books` 1:N `reviews` qua `reviews.book_id`; CASCADE.
-- `vouchers` liên hệ logic với `orders.voucher_code`; không dùng FK vì order lưu snapshot.
-- `customer_tiers` 1:N `users` qua `users.customer_tier_id`; RESTRICT khi xóa hạng.
-- `orders` 1:1 `payments` qua `payments.order_id`; CASCADE khi xóa order.
-- `orders` 1:N `order_status_history` qua `order_status_history.order_id`; CASCADE.
+## Quan hệ chính
 
-## Bảng
+- `customer_tiers` 1:N `users` qua `users.customer_tier_id`.
+- `users` 1:N `orders` qua `orders.user_id`, giữ lịch sử đơn khi xóa user.
+- `users` 1:N `user_addresses`, `wishlists`, `reviews`, `password_reset_tokens`, `member_point_transactions` và `wallet_transactions`.
+- `users` tự tham chiếu 1:N qua `users.referred_by`.
+- `categories` 1:N `books` qua `books.category_id`.
+- `books` 1:N `order_items`, `reviews` và `wishlists`.
+- `orders` 1:N `order_items` và `order_status_history`.
+- `orders` 1:1 `payments` qua `payments.order_id`.
+- `system_settings.updated_by` và `wallet_transactions.created_by` tham chiếu `users.id`.
+- `orders.voucher_code` chỉ là quan hệ logic tới `vouchers.code`; không tạo foreign key để bảo toàn snapshot lịch sử.
 
-### users
-`id` PK; `name` VARCHAR(120) NOT NULL; `email` VARCHAR(190) UNIQUE NOT NULL; `password_hash` VARCHAR(255) NOT NULL; `role` ENUM('customer','admin') DEFAULT 'customer'; `customer_tier_id` FK; `created_at`, `updated_at` TIMESTAMP.
+## Bảng nghiệp vụ
 
-### customer_tiers
-`id` PK; `code` VARCHAR(30) UNIQUE; `name`; `min_spending`; `discount_percent`; `description`; timestamps. Dùng để phân biệt khách thường và VIP.
+### users và customer_tiers
 
-### categories
-`id` PK; `name` VARCHAR(120) NOT NULL; `slug` VARCHAR(150) UNIQUE NOT NULL; `description` TEXT NULL; timestamps.
+`users` lưu tài khoản, role, password hash, Google ID, xác thực email, referral, trạng thái mua hàng, ví và hạng khách hàng. `customer_tiers` lưu mã hạng, mức chi tiêu tối thiểu và phần trăm ưu đãi.
 
-### books
-`id` PK; `category_id` FK NOT NULL; `title` VARCHAR(255) NOT NULL; `slug` VARCHAR(255) UNIQUE NOT NULL; `author` VARCHAR(180) NOT NULL; `publisher` VARCHAR(180) NULL; `price` INT UNSIGNED NOT NULL; `original_price` INT UNSIGNED NULL; `description` TEXT NULL; `cover` VARCHAR(255) NULL; `stock_quantity` INT UNSIGNED NOT NULL; `status` ENUM('draft','published','hidden') DEFAULT 'draft`; timestamps. Check `original_price IS NULL OR original_price >= price`.
+### user_addresses
 
-### orders
-`id` PK; `user_id` FK NOT NULL; `order_code` VARCHAR(32) UNIQUE NOT NULL; `status` ENUM('pending','confirmed','shipping','completed','cancelled') DEFAULT 'pending`; `subtotal`, `shipping_fee`, `discount_amount`, `total` INT UNSIGNED; `voucher_code` VARCHAR(50) NULL; `shipping_name` VARCHAR(120); `shipping_phone` VARCHAR(30); `shipping_address` VARCHAR(255); timestamps.
+Lưu nhiều địa chỉ theo user: nhãn, người nhận, số điện thoại, địa chỉ và cờ mặc định. Xóa user thì địa chỉ bị xóa theo.
+
+### categories và books
+
+`categories` có `name`, `slug`, `description`. `books` có category, title, slug, author, publisher, price, original price, preview content, cover, stock và status (`draft`, `published`, `hidden`). Category không thể xóa nếu còn book tham chiếu.
+
+### orders và order_items
+
+`orders` lưu mã đơn, trạng thái, subtotal, phí giao, giảm giá, tổng tiền, voucher snapshot và thông tin giao hàng. Trạng thái hiện tại gồm `pending`, `confirmed`, `shipping`, `delivered`, `completed`, `cancel_requested`, `return_requested`, `return_shipping`, `returned`, `return_rejected`, `cancelled`.
+
+`order_items` lưu snapshot `book_title`, `unit_price`, `quantity`, `line_total`; xóa order sẽ xóa item, còn book được giữ để bảo toàn lịch sử bán.
 
 ### payments
-`id` PK; `order_id` UNIQUE FK; `method` ENUM('cod','bank_transfer','momo','vnpay','zalopay'); `status` ENUM('pending','processing','paid','failed','cancelled','refunded'); `amount`; `transaction_code`; `provider`; `provider_response`; `paid_at`; timestamps.
+
+Một order có tối đa một payment. `method` hỗ trợ `cod`, `bank_transfer`, `momo`, `vnpay`, `zalopay`; `status` hỗ trợ pending, processing, paid, failed, cancelled và refunded. PayOS dùng lớp service ở ứng dụng, không phải bảng riêng.
 
 ### order_status_history
-`id` PK; `order_id` FK; `from_status`; `to_status`; `changed_by` FK NULL; `note`; `created_at`. Dùng để truy vết quá trình xử lý đơn.
 
-### order_items
-`id` PK; `order_id` FK NOT NULL; `book_id` FK NOT NULL; `book_title` VARCHAR(255) snapshot; `unit_price`, `quantity`, `line_total` INT UNSIGNED NOT NULL.
+Lưu trạng thái trước/sau, người thay đổi, ghi chú và thời điểm. Lịch sử bị xóa theo order; user thực hiện thay đổi có thể bị set null.
 
-### vouchers
-`id` PK; `code` VARCHAR(50) UNIQUE NOT NULL; `type` ENUM('percent','fixed'); `value`, `min_order_amount`, `used_count` INT UNSIGNED; `starts_at`, `expires_at` DATETIME NULL; `usage_limit` INT UNSIGNED NULL; `status` ENUM('active','inactive'); timestamps.
+### vouchers và reviews
 
-### reviews
-`id` PK; `user_id` FK NOT NULL; `book_id` FK NOT NULL; `rating` TINYINT UNSIGNED 1..5; `comment` TEXT NOT NULL; `status` ENUM('published','hidden'); timestamps; UNIQUE(`user_id`,`book_id`).
+Voucher có loại `percent` hoặc `fixed`, giá trị, đơn tối thiểu, thời hạn, giới hạn lượt dùng, lượt đã dùng và status. Review có rating, comment, status; một user chỉ review một book một lần.
 
-## Báo cáo và phân tích
+### wishlists, points, wallet và settings
 
-- `v_daily_sales_report`: doanh thu, giảm giá, số đơn và số lượng sách theo ngày.
-- `v_book_sales_report`: sách bán chạy theo số lượng và doanh thu.
-- `v_customer_sales_report`: tổng đơn, tổng chi tiêu, hạng khách hàng và lần mua gần nhất.
-- `v_order_payment_report`: đối chiếu trạng thái đơn và trạng thái thanh toán.
+- `wishlists` có unique `(user_id, book_id)`.
+- `member_point_transactions` lưu điểm earned/spent/adjusted và nguồn phát sinh.
+- `wallet_transactions` lưu điều chỉnh ví, số dư sau giao dịch, loại giao dịch và admin thực hiện.
+- `system_settings` lưu cấu hình key/value; secret được mã hóa ở tầng ứng dụng bằng `APP_KEY`.
 
-## Bảo toàn lịch sử
+### Token và xác thực
 
-`order_items` lưu tên/giá snapshot. `orders` lưu voucher code và discount snapshot. Biến thể sách và địa chỉ riêng chưa thuộc schema hiện tại; thanh toán online đã có cấu trúc `payments` nhưng vẫn cần tích hợp gateway/callback ở tầng ứng dụng.
+`password_reset_tokens` lưu token reset dạng hash, thời hạn và thời điểm sử dụng. Token xác thực email nằm trên `users` dưới dạng hash và thời hạn.
+
+## Bảo toàn lịch sử và dữ liệu
+
+- Tiền là số nguyên VNĐ.
+- `order_items` không phụ thuộc giá catalogue hiện tại.
+- `orders` lưu voucher code và discount snapshot.
+- Không dùng seed lại trên production.
+- Khi đổi schema, tạo migration mới thay vì sửa migration đã chạy.

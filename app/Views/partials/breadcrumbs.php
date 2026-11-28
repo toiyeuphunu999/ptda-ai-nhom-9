@@ -1,1 +1,1 @@
-<nav class="breadcrumbs" aria-label="Đường dẫn"><a href="/">Trang chủ</a><span>/</span><span><?= \App\Helpers\ViewHelper::escape($title ?? '') ?></span></nav>
+<nav class="breadcrumbs flex flex-wrap gap-2 mb-[18px] text-slate-500 text-xs [&_span:last-child]:text-slate-900 [&_a]:inline-flex [&_a]:items-center [&_a]:[min-height:32px]" aria-label="Đường dẫn"><a href="/">Trang chủ</a><span>/</span><span><?= \App\Helpers\ViewHelper::escape($title ?? '') ?></span></nav>

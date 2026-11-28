@@ -9,7 +9,12 @@ use RuntimeException;
 
 final class UserAddress
 {
-    public function __construct(private Database $database) {}
+    private Database $database;
+
+    public function __construct(Database $database)
+    {
+        $this->database = $database;
+    }
 
     public function allForUser(int $userId): array
     {
@@ -28,14 +33,31 @@ final class UserAddress
 
     public function create(int $userId, string $label, string $name, string $phone, string $address, bool $isDefault = false): int
     {
-        [$label, $name, $phone, $address] = $this->validate($label, $name, $phone, $address);
+        $validatedData = $this->validate($label, $name, $phone, $address);
+        $label = $validatedData[0];
+        $name = $validatedData[1];
+        $phone = $validatedData[2];
+        $address = $validatedData[3];
         $databaseConnection = $this->database->connection();
-        $isDefault = $isDefault || !$this->allForUser($userId);
+        if (!$isDefault && !$this->allForUser($userId)) {
+            $isDefault = true;
+        }
+
         $databaseConnection->beginTransaction();
         try {
-            if ($isDefault) $this->clearDefault($userId);
+            if ($isDefault) {
+                $this->clearDefault($userId);
+            }
+
             $query = $databaseConnection->prepare('INSERT INTO user_addresses (user_id, label, recipient_name, phone, address, is_default) VALUES (:user_id, :label, :recipient_name, :phone, :address, :is_default)');
-            $query->execute(['user_id'=>$userId, 'label'=>$label, 'recipient_name'=>$name, 'phone'=>$phone, 'address'=>$address, 'is_default'=>$isDefault ? 1 : 0]);
+            $query->execute(array(
+                'user_id' => $userId,
+                'label' => $label,
+                'recipient_name' => $name,
+                'phone' => $phone,
+                'address' => $address,
+                'is_default' => $isDefault ? 1 : 0,
+            ));
             $addressId = (int)$databaseConnection->lastInsertId();
             $databaseConnection->commit();
             return $addressId;
@@ -49,7 +71,11 @@ final class UserAddress
 
     public function update(int $id, int $userId, string $label, string $name, string $phone, string $address): void
     {
-        [$label, $name, $phone, $address] = $this->validate($label, $name, $phone, $address);
+        $validatedData = $this->validate($label, $name, $phone, $address);
+        $label = $validatedData[0];
+        $name = $validatedData[1];
+        $phone = $validatedData[2];
+        $address = $validatedData[3];
         $query = $this->database->connection()->prepare('UPDATE user_addresses SET label = :label, recipient_name = :recipient_name, phone = :phone, address = :address WHERE id = :id AND user_id = :user_id');
         $query->execute([
             'id' => $id,
@@ -77,7 +103,9 @@ final class UserAddress
             $query->execute(['id' => $id, 'user_id' => $userId]);
             $databaseConnection->commit();
         } catch (\Throwable $exception) {
-            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
+            if ($databaseConnection->inTransaction()) {
+                $databaseConnection->rollBack();
+            }
             throw $exception;
         }
     }
@@ -85,15 +113,23 @@ final class UserAddress
     public function delete(int $id, int $userId): void
     {
         $address = $this->findForUser($id, $userId);
-        if (!$address) throw new RuntimeException('Không tìm thấy địa chỉ cần xóa.');
+        if (!$address) {
+            throw new RuntimeException('Không tìm thấy địa chỉ cần xóa.');
+        }
         $databaseConnection = $this->database->connection();
         $databaseConnection->beginTransaction();
         try {
             $query = $databaseConnection->prepare('DELETE FROM user_addresses WHERE id = :id AND user_id = :user_id');
-            $query->execute(['id'=>$id, 'user_id'=>$userId]);
+            $query->execute(array(
+                'id' => $id,
+                'user_id' => $userId,
+            ));
             if ((int)$address['is_default'] === 1) {
                 $remainingAddresses = $this->allForUser($userId);
-                $nextAddress = $remainingAddresses[0] ?? null;
+                $nextAddress = null;
+                if (isset($remainingAddresses[0])) {
+                    $nextAddress = $remainingAddresses[0];
+                }
                 if ($nextAddress) {
                     $this->clearDefault($userId);
                     $setDefault = $databaseConnection->prepare('UPDATE user_addresses SET is_default = 1 WHERE id = :id');
@@ -102,7 +138,9 @@ final class UserAddress
             }
             $databaseConnection->commit();
         } catch (\Throwable $exception) {
-            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
+            if ($databaseConnection->inTransaction()) {
+                $databaseConnection->rollBack();
+            }
             throw $exception;
         }
     }
@@ -110,7 +148,7 @@ final class UserAddress
     private function clearDefault(int $userId): void
     {
         $query = $this->database->connection()->prepare('UPDATE user_addresses SET is_default = 0 WHERE user_id = :user_id');
-        $query->execute(['user_id'=>$userId]);
+        $query->execute(array('user_id' => $userId));
     }
 
     private function validate(string $label, string $name, string $phone, string $address): array
@@ -119,10 +157,22 @@ final class UserAddress
         $name = trim($name);
         $phone = trim($phone);
         $address = trim($address);
-        if ($label === '' || mb_strlen($label) > 50) throw new RuntimeException('Tên địa chỉ không hợp lệ.');
-        if ($name === '' || mb_strlen($name) > 120) throw new RuntimeException('Họ tên người nhận không hợp lệ.');
-        if (!preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) throw new RuntimeException('Số điện thoại không hợp lệ.');
-        if ($address === '' || mb_strlen($address) > 255) throw new RuntimeException('Địa chỉ không hợp lệ.');
-        return [$label, $name, $phone, $address];
+        if ($label === '' || mb_strlen($label) > 50) {
+            throw new RuntimeException('Tên địa chỉ không hợp lệ.');
+        }
+
+        if ($name === '' || mb_strlen($name) > 120) {
+            throw new RuntimeException('Họ tên người nhận không hợp lệ.');
+        }
+
+        if (!preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) {
+            throw new RuntimeException('Số điện thoại không hợp lệ.');
+        }
+
+        if ($address === '' || mb_strlen($address) > 255) {
+            throw new RuntimeException('Địa chỉ không hợp lệ.');
+        }
+
+        return array($label, $name, $phone, $address);
     }
 }

@@ -14,25 +14,26 @@ class AuthPageController extends Controller
 {
     private function getAuthModel(): Auth
     {
-        return new Auth($this->database());
+        $database = $this->database();
+        return new Auth($database);
     }
 
     public function login(): void
     {
         Session::start();
-        $this->view->render('shop/login', array('title' => 'Đăng nhập'));
+        $this->view->render('shop/login', array('title' => 'Đăng nhập'), 'auth');
     }
 
     public function register(): void
     {
         Session::start();
-        $this->view->render('shop/register', array('title' => 'Đăng ký'));
+        $this->view->render('shop/register', array('title' => 'Đăng ký'), 'auth');
     }
 
     public function forgotPassword(): void
     {
         Session::start();
-        $this->view->render('shop/forgot_password', array('title' => 'Quên mật khẩu'));
+        $this->view->render('shop/forgot_password', array('title' => 'Quên mật khẩu'), 'auth');
     }
 
     public function forgotPasswordSubmit(): void
@@ -46,10 +47,11 @@ class AuthPageController extends Controller
             Session::flash('success', 'Nếu email tồn tại, hướng dẫn đặt lại mật khẩu đã được gửi.');
             header('Location: /login');
         } catch (Throwable $exception) {
-            $data = array('title' => 'Quên mật khẩu');
+            $data = array();
+            $data['title'] = 'Quên mật khẩu';
             $data['error'] = $exception->getMessage();
             $data['email'] = $email;
-            $this->view->render('shop/forgot_password', $data);
+            $this->view->render('shop/forgot_password', $data, 'auth');
         }
     }
 
@@ -63,7 +65,11 @@ class AuthPageController extends Controller
             header('Location: /forgot-password');
             return;
         }
-        $this->view->render('shop/reset_password', array('title' => 'Đặt lại mật khẩu', 'token' => $token));
+        $data = array(
+            'title' => 'Đặt lại mật khẩu',
+            'token' => $token,
+        );
+        $this->view->render('shop/reset_password', $data, 'auth');
     }
 
     public function resetPasswordSubmit(): void
@@ -79,10 +85,11 @@ class AuthPageController extends Controller
             Session::flash('success', 'Đặt lại mật khẩu thành công.');
             header('Location: /login');
         } catch (Throwable $exception) {
-            $data = array('title' => 'Đặt lại mật khẩu');
+            $data = array();
+            $data['title'] = 'Đặt lại mật khẩu';
             $data['error'] = $exception->getMessage();
             $data['token'] = $token;
-            $this->view->render('shop/reset_password', $data);
+            $this->view->render('shop/reset_password', $data, 'auth');
         }
     }
 
@@ -99,7 +106,7 @@ class AuthPageController extends Controller
             $this->view->render('shop/login', array(
                 'title' => 'Đăng nhập',
                 'error' => $exception->getMessage(),
-            ));
+            ), 'auth');
         }
     }
 
@@ -149,7 +156,7 @@ class AuthPageController extends Controller
                 'title' => 'Đăng nhập',
                 'error' => $exception->getMessage(),
                 'email' => $email,
-            ));
+            ), 'auth');
         }
     }
 
@@ -174,11 +181,12 @@ class AuthPageController extends Controller
             }
             header('Location: /login');
         } catch (Throwable $exception) {
-            $data = array('title' => 'Đăng ký');
+            $data = array();
+            $data['title'] = 'Đăng ký';
             $data['error'] = $exception->getMessage();
             $data['name'] = $name;
             $data['email'] = $email;
-            $this->view->render('shop/register', $data);
+            $this->view->render('shop/register', $data, 'auth');
         }
     }
 

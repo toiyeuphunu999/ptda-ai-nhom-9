@@ -10,8 +10,11 @@ use RuntimeException;
 
 final class Category
 {
-    public function __construct(private Database $database)
+    private Database $database;
+
+    public function __construct(Database $database)
     {
+        $this->database = $database;
     }
 
     public function all(): array
@@ -48,7 +51,12 @@ final class Category
         if ($name === '' || mb_strlen($name) > 120 || mb_strlen((string)($input['description'] ?? '')) > 1000) {
             throw new RuntimeException('Tên danh mục không được để trống.');
         }
-        return [$name, '', trim((string)($input['description'] ?? '')) ?: null];
+        $description = trim((string)($input['description'] ?? ''));
+        if ($description === '') {
+            $description = null;
+        }
+
+        return array($name, '', $description);
     }
 
     public function update(int $id, string $name, string $slug, ?string $description): void
@@ -66,13 +74,26 @@ final class Category
         $slug = $base;
         $suffix = 2;
         do {
-            $sql = 'SELECT id FROM categories WHERE slug = :slug' . ($ignoreId !== null ? ' AND id <> :id' : '') . ' LIMIT 1';
+            $sql = 'SELECT id FROM categories WHERE slug = :slug';
+            if ($ignoreId !== null) {
+                $sql .= ' AND id <> :id';
+            }
+            $sql .= ' LIMIT 1';
+
             $statement = $this->database->connection()->prepare($sql);
             $params = ['slug' => $slug];
-            if ($ignoreId !== null) $params['id'] = $ignoreId;
+            if ($ignoreId !== null) {
+                $params['id'] = $ignoreId;
+            }
+
             $statement->execute($params);
-            if (!$statement->fetch()) return $slug;
-            $slug = $base . '-' . $suffix++;
+
+            if (!$statement->fetch()) {
+                return $slug;
+            }
+
+            $slug = $base . '-' . $suffix;
+            $suffix++;
         } while (true);
     }
 

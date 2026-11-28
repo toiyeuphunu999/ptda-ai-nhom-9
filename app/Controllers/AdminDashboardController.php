@@ -1,6 +1,9 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Controllers;
+
 use App\Models\Book;
 use App\Models\Category;
 use App\Models\Order;
@@ -13,7 +16,8 @@ final class AdminDashboardController extends AdminController
         $this->authorize();
         $database = $this->database();
         $orderModel = new Order($database);
-        $data = array('title' => 'Tổng quan');
+        $data = array();
+        $data['title'] = 'Tổng quan';
         $data['bookCount'] = (new Book($database))->countAll();
         $data['categoryCount'] = (new Category($database))->countAll();
         $data['orderCount'] = $orderModel->countAll();
@@ -24,8 +28,11 @@ final class AdminDashboardController extends AdminController
     public function reports(): void
     {
         $this->authorize();
-        $data = array('title' => 'Báo cáo bán hàng');
-        $data['reports'] = (new Order($this->database()))->businessReports();
+        $database = $this->database();
+        $orderModel = new Order($database);
+        $data = array();
+        $data['title'] = 'Báo cáo bán hàng';
+        $data['reports'] = $orderModel->businessReports();
         $this->view->render('admin/reports', $data, 'admin');
     }
 }

@@ -1,20 +1,23 @@
-<footer class="site-footer">
-    <div class="container footer-trust-strip">
-        <div><span class="material-symbols-outlined" aria-hidden="true">local_shipping</span><div><strong>Giao hàng tận nơi</strong><small>Kiểm tra trạng thái trong tài khoản</small></div></div>
-        <div><span class="material-symbols-outlined" aria-hidden="true">verified_user</span><div><strong>Thông tin minh bạch</strong><small>Giá và tồn kho hiển thị rõ ràng</small></div></div>
-        <div><span class="material-symbols-outlined" aria-hidden="true">support_agent</span><div><strong>Hỗ trợ khi cần</strong><small>Gửi yêu cầu qua trang Liên hệ</small></div></div>
-        <div><span class="material-symbols-outlined" aria-hidden="true">payments</span><div><strong>Thanh toán linh hoạt</strong><small>COD và PayOS/VietQR</small></div></div>
+<footer class="mt-20 border-t border-[#e7eaf0] bg-[#152238] text-[#dce5f2] [&_h2]:text-white [&_nav_a]:text-[#b9c6d8] [&_nav_a:hover]:text-white">
+    <div class="mx-auto grid w-[min(1240px,calc(100%-32px))] grid-cols-1 gap-4 border-b border-[#e7eaf0] py-6 sm:grid-cols-2 lg:grid-cols-4 max-[800px]:w-[calc(100%-24px)]">
+        <?php $trustItems = [
+            ['local_shipping', 'Giao hàng tận nơi', 'Kiểm tra trạng thái trong tài khoản'],
+            ['verified_user', 'Thông tin minh bạch', 'Giá và tồn kho hiển thị rõ ràng'],
+            ['support_agent', 'Hỗ trợ khi cần', 'Gửi yêu cầu qua trang Liên hệ'],
+            ['payments', 'Thanh toán linh hoạt', 'COD và PayOS/VietQR'],
+        ]; foreach ($trustItems as [$icon, $title, $description]): ?>
+            <div class="flex gap-3 rounded-xl bg-[#f8fafc] p-4"><span class="material-symbols-outlined text-2xl text-[#c2410c]" aria-hidden="true"><?= $icon ?></span><div><strong class="block text-sm font-semibold text-[#1e3a5f]"><?= $title ?></strong><small class="mt-1 block text-xs leading-5 text-[#64748b]"><?= $description ?></small></div></div>
+        <?php endforeach; ?>
     </div>
-    <div class="container footer-grid">
-        <div class="footer-brand-block">
-            <a class="brand" href="/">MỘC BẢN<small>NHÀ SÁCH TRỰC TUYẾN</small></a>
-            <p>Góc đọc sách được chọn lọc cho những ngày cần một khoảng lặng.</p>
-            <span class="footer-tagline">Chọn sách rõ ràng, đọc sách nhẹ nhàng.</span>
-            <div class="footer-contact-summary"><span class="material-symbols-outlined" aria-hidden="true">support_agent</span><div><strong>Hỗ trợ khách hàng</strong><a href="/contact">Gửi yêu cầu cho nhà sách</a></div></div>
+    <div class="mx-auto grid w-[min(1280px,calc(100%-40px))] grid-cols-1 gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] max-[800px]:w-[calc(100%-28px)]">
+        <div>
+            <a class="text-lg font-bold tracking-[.08em] text-white no-underline" href="/">MỘC BẢN<small class="mt-1 block text-[10px] font-medium tracking-[.18em] text-[#9eacc0]">NHÀ SÁCH TRỰC TUYẾN</small></a>
+            <p class="mt-4 max-w-sm text-sm leading-6 text-[#9eacc0]">Góc đọc sách được chọn lọc cho những ngày cần một khoảng lặng.</p>
+            <p class="mt-5 text-base font-medium leading-6 text-white">Chọn sách rõ ràng, đọc sách nhẹ nhàng.</p>
         </div>
-        <div><h2 class="footer-title">Khám phá</h2><nav class="footer-links" aria-label="Khám phá"><a href="/books">Tất cả sách</a><a href="/categories/van-hoc">Văn học</a><a href="/categories/kinh-te">Kinh tế</a><a href="/categories/cong-nghe-thong-tin">Công nghệ thông tin</a><a href="/search">Tìm kiếm sách</a></nav></div>
-        <div><h2 class="footer-title">Hỗ trợ khách hàng</h2><nav class="footer-links" aria-label="Hỗ trợ khách hàng"><a href="/faq">Câu hỏi thường gặp</a><a href="/guide">Hướng dẫn đặt hàng</a><a href="/shipping">Vận chuyển</a><a href="/returns">Đổi trả & hoàn tiền</a><a href="/contact">Liên hệ nhà sách</a></nav></div>
-        <div><h2 class="footer-title">Mộc Bản</h2><nav class="footer-links" aria-label="Thông tin Mộc Bản"><a href="/about">Về Mộc Bản</a><a href="/privacy">Chính sách bảo mật</a><a href="/terms">Điều khoản sử dụng</a><a href="/account">Tài khoản của tôi</a><a href="/orders">Lịch sử đơn hàng</a></nav></div>
+        <div><h2 class="mb-4 text-xs font-bold uppercase tracking-[.14em] text-[#1e3a5f]">Khám phá</h2><nav class="grid gap-1 text-sm" aria-label="Khám phá"><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/books">Tất cả sách</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/categories/van-hoc">Văn học</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/categories/kinh-te">Kinh tế</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/categories/cong-nghe-thong-tin">Công nghệ thông tin</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/search">Tìm kiếm sách</a></nav></div>
+        <div><h2 class="mb-4 text-xs font-bold uppercase tracking-[.14em] text-[#1e3a5f]">Hỗ trợ khách hàng</h2><nav class="grid gap-1 text-sm" aria-label="Hỗ trợ khách hàng"><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/faq">Câu hỏi thường gặp</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/guide">Hướng dẫn đặt hàng</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/shipping">Vận chuyển</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/returns">Đổi trả &amp; hoàn tiền</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/contact">Liên hệ nhà sách</a></nav></div>
+        <div><h2 class="mb-4 text-xs font-bold uppercase tracking-[.14em] text-[#1e3a5f]">Mộc Bản</h2><nav class="grid gap-1 text-sm" aria-label="Thông tin Mộc Bản"><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/about">Về Mộc Bản</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/privacy">Chính sách bảo mật</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/terms">Điều khoản sử dụng</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/account">Tài khoản của tôi</a><a class="inline-flex min-h-11 items-center text-[#64748b] no-underline transition hover:text-[#c2410c]" href="/orders">Lịch sử đơn hàng</a></nav></div>
     </div>
-    <div class="container footer-bottom"><span>© <?= date('Y') ?> Nhà sách Mộc Bản</span><span>Website bán sách trực tuyến</span><span><a href="/privacy">Bảo mật</a> · <a href="/terms">Điều khoản</a></span></div>
+    <div class="border-t border-[#2a3a52]"><div class="mx-auto flex w-[min(1280px,calc(100%-40px))] flex-col gap-2 py-4 text-xs text-[#9eacc0] sm:flex-row sm:items-center sm:justify-between max-[800px]:w-[calc(100%-28px)]"><span>© <?= date('Y') ?> Nhà sách Mộc Bản</span><span>Website bán sách trực tuyến</span><span><a class="hover:text-white" href="/privacy">Bảo mật</a> · <a class="hover:text-white" href="/terms">Điều khoản</a></span></div></div>
 </footer>
