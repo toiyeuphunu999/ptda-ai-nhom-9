@@ -9,7 +9,12 @@ use RuntimeException;
 
 final class Review
 {
-    public function __construct(private Database $database) {}
+    private Database $database;
+
+    public function __construct(Database $database)
+    {
+        $this->database = $database;
+    }
 
     public function forBook(int $bookId): array
     {
@@ -22,8 +27,25 @@ final class Review
     {
         $statement = $this->database->connection()->prepare('SELECT ROUND(AVG(rating), 1) AS average, COUNT(*) AS total FROM reviews WHERE book_id = :book_id AND status = "published"');
         $statement->execute(['book_id' => $bookId]);
-        $row = $statement->fetch() ?: [];
-        return ['average' => (float)($row['average'] ?? 0), 'total' => (int)($row['total'] ?? 0)];
+        $row = $statement->fetch();
+        if (!$row) {
+            $row = array();
+        }
+
+        $average = 0;
+        if (isset($row['average'])) {
+            $average = (float)$row['average'];
+        }
+
+        $total = 0;
+        if (isset($row['total'])) {
+            $total = (int)$row['total'];
+        }
+
+        return array(
+            'average' => $average,
+            'total' => $total,
+        );
     }
 
     public function canReview(int $userId, int $bookId): bool
@@ -42,9 +64,18 @@ final class Review
 
     public function save(int $userId, int $bookId, int $rating, string $comment): int
     {
-        if ($rating < 1 || $rating > 5 || trim($comment) === '' || mb_strlen(trim($comment)) > 2000) throw new RuntimeException('Đánh giá cần từ 1 đến 5 sao và nội dung tối đa 2.000 ký tự.');
+        $comment = trim($comment);
+        if ($rating < 1 || $rating > 5 || $comment === '' || mb_strlen($comment) > 2000) {
+            throw new RuntimeException('Đánh giá cần từ 1 đến 5 sao và nội dung tối đa 2.000 ký tự.');
+        }
+
         $statement = $this->database->connection()->prepare('INSERT INTO reviews (user_id,book_id,rating,comment) VALUES (:user_id,:book_id,:rating,:comment)');
-        $statement->execute(['user_id'=>$userId,'book_id'=>$bookId,'rating'=>$rating,'comment'=>trim($comment)]);
+        $statement->execute(array(
+            'user_id' => $userId,
+            'book_id' => $bookId,
+            'rating' => $rating,
+            'comment' => $comment,
+        ));
         return (int)$this->database->connection()->lastInsertId();
     }
 }

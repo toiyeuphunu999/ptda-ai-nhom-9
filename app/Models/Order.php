@@ -12,8 +12,11 @@ use App\Models\Voucher;
 
 final class Order
 {
-    public function __construct(private Database $database)
+    private Database $database;
+
+    public function __construct(Database $database)
     {
+        $this->database = $database;
     }
 
     public function findByCode(string $orderCode): ?array
@@ -71,7 +74,9 @@ final class Order
                 $voucherStatement = $databaseConnection->prepare('SELECT * FROM vouchers WHERE id = :id FOR UPDATE');
                 $voucherStatement->execute(['id' => $voucherId]);
                 $voucher = $voucherStatement->fetch();
-                if (!$voucher) throw new RuntimeException('Mã giảm giá không tồn tại.');
+                if (!$voucher) {
+                    throw new RuntimeException('Mã giảm giá không tồn tại.');
+                }
                 $discount = Voucher::discountFor($voucher, $subtotal);
                 $voucherCode = $voucher['code'];
                 $databaseConnection->prepare('UPDATE vouchers SET used_count = used_count + 1 WHERE id = :id')->execute(['id' => $voucherId]);
@@ -153,11 +158,15 @@ final class Order
             $orderStatement = $databaseConnection->prepare('SELECT user_id, status FROM orders WHERE id = :order_id FOR UPDATE');
             $orderStatement->execute(['order_id' => $orderId]);
             $currentOrder = $orderStatement->fetch();
-            if (!$currentOrder) throw new RuntimeException('Không tìm thấy đơn hàng.');
+            if (!$currentOrder) {
+                throw new RuntimeException('Không tìm thấy đơn hàng.');
+            }
             $payment = $databaseConnection->prepare('SELECT amount FROM payments WHERE order_id = :order_id AND method = \'bank_transfer\' FOR UPDATE');
             $payment->execute(['order_id' => $orderId]);
             $existing = $payment->fetch();
-            if (!$existing || (int)$existing['amount'] !== $amount) throw new RuntimeException('Số tiền thanh toán không khớp.');
+            if (!$existing || (int)$existing['amount'] !== $amount) {
+                throw new RuntimeException('Số tiền thanh toán không khớp.');
+            }
             $update = $databaseConnection->prepare('UPDATE payments SET status = :status, provider = \'payos\', transaction_code = COALESCE(:transaction_code, transaction_code), provider_response = :provider_response, paid_at = CASE WHEN :paid = 1 THEN COALESCE(paid_at, NOW()) ELSE paid_at END WHERE order_id = :order_id');
             $update->execute([
                 'status' => $mappedStatus,
@@ -212,7 +221,9 @@ final class Order
         );
         $statement->execute(['id' => $orderId, 'user_id' => $userId]);
         $order = $statement->fetch();
-        if (!$order) return null;
+        if (!$order) {
+            return null;
+        }
         return $this->addDetailData($order);
     }
 
@@ -227,7 +238,9 @@ final class Order
         );
         $statement->execute(['id' => $orderId]);
         $order = $statement->fetch();
-        if (!$order) return null;
+        if (!$order) {
+            return null;
+        }
         return $this->addDetailData($order);
     }
 
@@ -386,9 +399,13 @@ final class Order
     public function cancelByCustomer(int $id, int $userId, string $reason): void
     {
         $reason = trim($reason);
-        if ($reason === '' || mb_strlen($reason) > 250) throw new RuntimeException('Lý do hủy đơn phải từ 1 đến 250 ký tự.');
+        if ($reason === '' || mb_strlen($reason) > 250) {
+            throw new RuntimeException('Lý do hủy đơn phải từ 1 đến 250 ký tự.');
+        }
         $order = $this->detailForUser($id, $userId);
-        if (!$order) throw new RuntimeException('Không tìm thấy đơn hàng.');
+        if (!$order) {
+            throw new RuntimeException('Không tìm thấy đơn hàng.');
+        }
         if ($order['status'] === 'pending') {
             $this->changeStatus($id, 'cancelled', $userId, $reason, 'customer');
             $this->saveCancelReason($id, $reason, false);
@@ -404,9 +421,13 @@ final class Order
     public function reviewCancel(int $id, bool $approve, int $adminId, string $reason): void
     {
         $reason = trim($reason);
-        if ($reason === '' || mb_strlen($reason) > 250) throw new RuntimeException('Lý do xử lý yêu cầu hủy phải từ 1 đến 250 ký tự.');
+        if ($reason === '' || mb_strlen($reason) > 250) {
+            throw new RuntimeException('Lý do xử lý yêu cầu hủy phải từ 1 đến 250 ký tự.');
+        }
         $order = $this->findById($id);
-        if (!$order || $order['status'] !== 'cancel_requested') throw new RuntimeException('Yêu cầu hủy không còn cần xử lý.');
+        if (!$order || $order['status'] !== 'cancel_requested') {
+            throw new RuntimeException('Yêu cầu hủy không còn cần xử lý.');
+        }
         $status = $approve ? 'cancelled' : 'confirmed';
         $this->changeStatus($id, $status, $adminId, $reason, 'admin');
         $this->saveCancelReason($id, $reason, false);
@@ -415,17 +436,26 @@ final class Order
     public function confirmReceived(int $id, int $userId): void
     {
         $order = $this->detailForUser($id, $userId);
-        if (!$order || $order['status'] !== 'delivered') throw new RuntimeException('Đơn hàng chưa ở trạng thái chờ xác nhận nhận hàng.');
+        if (!$order || $order['status'] !== 'delivered') {
+            throw new RuntimeException('Đơn hàng chưa ở trạng thái chờ xác nhận nhận hàng.');
+        }
         $this->changeStatus($id, 'completed', $userId, 'Khách hàng xác nhận đã nhận được hàng.', 'customer');
     }
 
     public function requestReturn(int $id, int $userId, string $reason, ?string $image): void
     {
         $reason = trim($reason);
-        if ($reason === '' || mb_strlen($reason) > 250) throw new RuntimeException('Lý do đổi trả phải từ 1 đến 250 ký tự.');
-        if ($image === null || $image === '') throw new RuntimeException('Vui lòng gửi hình ảnh sản phẩm cần đổi trả.');
+        if ($reason === '' || mb_strlen($reason) > 250) {
+            throw new RuntimeException('Lý do đổi trả phải từ 1 đến 250 ký tự.');
+        }
+
+        if ($image === null || $image === '') {
+            throw new RuntimeException('Vui lòng gửi hình ảnh sản phẩm cần đổi trả.');
+        }
         $order = $this->detailForUser($id, $userId);
-        if (!$order || $order['status'] !== 'delivered') throw new RuntimeException('Chỉ được yêu cầu đổi trả khi đơn đã giao thành công.');
+        if (!$order || $order['status'] !== 'delivered') {
+            throw new RuntimeException('Chỉ được yêu cầu đổi trả khi đơn đã giao thành công.');
+        }
         $this->changeStatus($id, 'return_requested', $userId, $reason, 'customer');
         $statement = $this->database->connection()->prepare('UPDATE orders SET return_reason = :reason, return_image = :image, return_requested_at = NOW() WHERE id = :id');
         $statement->execute(['reason' => $reason, 'image' => $image, 'id' => $id]);
@@ -434,9 +464,13 @@ final class Order
     public function reviewReturn(int $id, bool $approve, int $adminId, string $reason): void
     {
         $reason = trim($reason);
-        if ($reason === '' || mb_strlen($reason) > 250) throw new RuntimeException('Lý do xử lý đổi trả phải từ 1 đến 250 ký tự.');
+        if ($reason === '' || mb_strlen($reason) > 250) {
+            throw new RuntimeException('Lý do xử lý đổi trả phải từ 1 đến 250 ký tự.');
+        }
         $order = $this->findById($id);
-        if (!$order || $order['status'] !== 'return_requested') throw new RuntimeException('Yêu cầu đổi trả không còn cần xử lý.');
+        if (!$order || $order['status'] !== 'return_requested') {
+            throw new RuntimeException('Yêu cầu đổi trả không còn cần xử lý.');
+        }
         $this->changeStatus($id, $approve ? 'return_shipping' : 'return_rejected', $adminId, $reason, 'admin');
         $statement = $this->database->connection()->prepare('UPDATE orders SET return_review_reason = :reason, return_reviewed_at = NOW() WHERE id = :id');
         $statement->execute(['reason' => $reason, 'id' => $id]);
@@ -445,28 +479,55 @@ final class Order
     public function confirmReturned(int $id, int $adminId, string $reason): void
     {
         $reason = trim($reason);
-        if ($reason === '' || mb_strlen($reason) > 250) throw new RuntimeException('Ghi chú nhận hàng trả phải từ 1 đến 250 ký tự.');
+        if ($reason === '' || mb_strlen($reason) > 250) {
+            throw new RuntimeException('Ghi chú nhận hàng trả phải từ 1 đến 250 ký tự.');
+        }
         $order = $this->findById($id);
-        if (!$order || $order['status'] !== 'return_shipping') throw new RuntimeException('Đơn hàng chưa ở trạng thái chờ nhận hàng trả.');
+        if (!$order || $order['status'] !== 'return_shipping') {
+            throw new RuntimeException('Đơn hàng chưa ở trạng thái chờ nhận hàng trả.');
+        }
         $this->changeStatus($id, 'returned', $adminId, $reason, 'admin');
     }
 
     private function changeStatus(int $id, string $status, ?int $changedBy, string $note, string $actor): void
     {
         $allowed = ['pending', 'confirmed', 'shipping', 'delivered', 'completed', 'cancel_requested', 'return_requested', 'return_shipping', 'returned', 'return_rejected', 'cancelled'];
-        if (!in_array($status, $allowed, true)) throw new RuntimeException('Trạng thái đơn hàng không hợp lệ.');
+        if (!in_array($status, $allowed, true)) {
+            throw new RuntimeException('Trạng thái đơn hàng không hợp lệ.');
+        }
         $databaseConnection = $this->database->connection();
         $databaseConnection->beginTransaction();
         try {
             $statement = $databaseConnection->prepare('SELECT orders.*, COALESCE(payments.method, \'cod\') AS payment_method, COALESCE(payments.status, \'pending\') AS payment_status FROM orders LEFT JOIN payments ON payments.order_id = orders.id WHERE orders.id = :id FOR UPDATE');
             $statement->execute(['id' => $id]);
             $current = $statement->fetch();
-            if (!$current) throw new RuntimeException('Không tìm thấy đơn hàng.');
-            if ($current['status'] === $status) { $databaseConnection->commit(); return; }
-            if ($status === 'cancelled' && trim($note) === '') throw new RuntimeException('Hủy đơn hàng bắt buộc phải có lý do.');
-            if (!$this->canChangeStatus((string)$current['status'], $status, $actor)) throw new RuntimeException('Đơn hàng chỉ được chuyển sang bước kế tiếp.');
-            if ($status === 'completed' && $current['payment_method'] === 'bank_transfer' && $current['payment_status'] !== 'paid') throw new RuntimeException('Chưa thể hoàn tất đơn PayOS khi giao dịch chưa được xác nhận.');
-            if ($status === 'cancelled' && $current['payment_status'] === 'paid') throw new RuntimeException('Đơn đã thanh toán, cần xử lý hoàn tiền trước khi hủy.');
+            if (!$current) {
+                throw new RuntimeException('Không tìm thấy đơn hàng.');
+            }
+
+            if ($current['status'] === $status) {
+                $databaseConnection->commit();
+                return;
+            }
+
+            if ($status === 'cancelled' && trim($note) === '') {
+                throw new RuntimeException('Hủy đơn hàng bắt buộc phải có lý do.');
+            }
+
+            if (!$this->canChangeStatus((string)$current['status'], $status, $actor)) {
+                throw new RuntimeException('Đơn hàng chỉ được chuyển sang bước kế tiếp.');
+            }
+
+            $isUnpaidBankTransfer = $status === 'completed'
+                && $current['payment_method'] === 'bank_transfer'
+                && $current['payment_status'] !== 'paid';
+            if ($isUnpaidBankTransfer) {
+                throw new RuntimeException('Chưa thể hoàn tất đơn PayOS khi giao dịch chưa được xác nhận.');
+            }
+
+            if ($status === 'cancelled' && $current['payment_status'] === 'paid') {
+                throw new RuntimeException('Đơn đã thanh toán, cần xử lý hoàn tiền trước khi hủy.');
+            }
 
             $update = $databaseConnection->prepare('UPDATE orders SET status = :status WHERE id = :id');
             $update->execute(['status' => $status, 'id' => $id]);
@@ -487,10 +548,19 @@ final class Order
                 $databaseConnection->prepare("UPDATE payments SET status = 'refunded' WHERE order_id = :order_id")->execute(['order_id' => $id]);
                 $this->restoreReturnedStock($databaseConnection, $id);
             }
-            if ($status === 'cancelled') $this->restoreCancelledOrder($databaseConnection, $current);
-            if ($status === 'completed' || $status === 'returned' || $status === 'cancelled') $this->updateCustomerTier($databaseConnection, (int)$current['user_id']);
+            if ($status === 'cancelled') {
+                $this->restoreCancelledOrder($databaseConnection, $current);
+            }
+
+            $shouldUpdateTier = $status === 'completed' || $status === 'returned' || $status === 'cancelled';
+            if ($shouldUpdateTier) {
+                $this->updateCustomerTier($databaseConnection, (int)$current['user_id']);
+            }
+
             $databaseConnection->commit();
-            if ($status === 'completed') (new MemberPoint($this->database))->earnForOrder((int)$current['user_id'], $id, (int)$current['total']);
+            if ($status === 'completed') {
+                (new MemberPoint($this->database))->earnForOrder((int)$current['user_id'], $id, (int)$current['total']);
+            }
             $this->sendStatusEmail($id, $status, $note);
         } catch (\Throwable $exception) {
             if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
@@ -512,8 +582,17 @@ final class Order
         $items = $databaseConnection->prepare('SELECT book_id, quantity FROM order_items WHERE order_id = :order_id');
         $items->execute(['order_id' => (int)$order['id']]);
         $restore = $databaseConnection->prepare('UPDATE books SET stock_quantity = stock_quantity + :quantity WHERE id = :book_id');
-        foreach ($items->fetchAll() as $item) $restore->execute(['quantity' => (int)$item['quantity'], 'book_id' => (int)$item['book_id']]);
-        if (!empty($order['voucher_code'])) $databaseConnection->prepare('UPDATE vouchers SET used_count = GREATEST(0, used_count - 1) WHERE code = :code')->execute(['code' => $order['voucher_code']]);
+        foreach ($items->fetchAll() as $item) {
+            $restore->execute(array(
+                'quantity' => (int)$item['quantity'],
+                'book_id' => (int)$item['book_id'],
+            ));
+        }
+
+        if (!empty($order['voucher_code'])) {
+            $statement = $databaseConnection->prepare('UPDATE vouchers SET used_count = GREATEST(0, used_count - 1) WHERE code = :code');
+            $statement->execute(['code' => $order['voucher_code']]);
+        }
     }
 
     private function restoreReturnedStock($databaseConnection, int $orderId): void
@@ -521,7 +600,12 @@ final class Order
         $items = $databaseConnection->prepare('SELECT book_id, quantity FROM order_items WHERE order_id = :order_id');
         $items->execute(['order_id' => $orderId]);
         $restore = $databaseConnection->prepare('UPDATE books SET stock_quantity = stock_quantity + :quantity WHERE id = :book_id');
-        foreach ($items->fetchAll() as $item) $restore->execute(['quantity' => (int)$item['quantity'], 'book_id' => (int)$item['book_id']]);
+        foreach ($items->fetchAll() as $item) {
+            $restore->execute(array(
+                'quantity' => (int)$item['quantity'],
+                'book_id' => (int)$item['book_id'],
+            ));
+        }
     }
 
     private function updateCustomerTier($databaseConnection, int $userId): void
@@ -541,22 +625,33 @@ final class Order
     public function notifyNewOrder(string $orderCode): void
     {
         $order = $this->findByCode($orderCode);
-        if (!$order) return;
+        if (!$order) {
+            return;
+        }
         $adminEmail = (new SystemSetting($this->database))->get('SHOP_EMAIL');
-        if (!$adminEmail || !filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) return;
+        if (!$adminEmail || !filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
         $this->sendEmail($adminEmail, 'Có đơn hàng mới ' . $orderCode, 'Có đơn hàng mới ' . $orderCode . '. Vui lòng kiểm tra trong trang quản trị.', EmailTemplate::newOrder('Quản trị viên', $orderCode, $this->baseUrl() . '/admin/orders/' . (int)$order['id']));
     }
 
     private function sendStatusEmail(int $id, string $status, string $reason): void
     {
         $order = $this->findById($id);
-        if (!$order || !filter_var($order['shipping_email'], FILTER_VALIDATE_EMAIL)) return;
+        if (!$order || !filter_var($order['shipping_email'], FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
         $this->sendEmail((string)$order['shipping_email'], 'Cập nhật đơn hàng ' . $order['order_code'], 'Đơn hàng ' . $order['order_code'] . ' đã chuyển sang trạng thái mới.', EmailTemplate::orderStatus((string)$order['shipping_name'], (string)$order['order_code'], $status, $reason, $this->baseUrl() . '/orders/' . (int)$order['id']));
     }
 
     private function sendEmail(string $to, string $subject, string $body, string $html): void
     {
-        try { (new SmtpMailer((new SystemSetting($this->database))->mailConfig()))->send($to, $subject, $body, $html); } catch (\Throwable $exception) { error_log('Order email failed: ' . $exception->getMessage()); }
+        try {
+            $mailer = new SmtpMailer((new SystemSetting($this->database))->mailConfig());
+            $mailer->send($to, $subject, $body, $html);
+        } catch (\Throwable $exception) {
+            error_log('Order email failed: ' . $exception->getMessage());
+        }
     }
 
     private function baseUrl(): string

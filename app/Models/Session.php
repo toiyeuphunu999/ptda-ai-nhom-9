@@ -28,7 +28,12 @@ final class Session
     public static function get(string $key, mixed $default = null): mixed
     {
         self::start();
-        return $_SESSION[$key] ?? $default;
+
+        if (isset($_SESSION[$key])) {
+            return $_SESSION[$key];
+        }
+
+        return $default;
     }
 
     public static function put(string $key, mixed $value): void
@@ -52,8 +57,13 @@ final class Session
     public static function pullFlash(string $key, mixed $default = null): mixed
     {
         self::start();
-        $value = $_SESSION['_flash'][$key] ?? $default;
-        unset($_SESSION['_flash'][$key]);
+
+        $value = $default;
+        if (isset($_SESSION['_flash'][$key])) {
+            $value = $_SESSION['_flash'][$key];
+            unset($_SESSION['_flash'][$key]);
+        }
+
         return $value;
     }
 

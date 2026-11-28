@@ -11,7 +11,12 @@ final class SystemSetting
 {
     private const PAYOS_API_URL = 'https://api-merchant.payos.vn';
 
-    public function __construct(private Database $database) {}
+    private Database $database;
+
+    public function __construct(Database $database)
+    {
+        $this->database = $database;
+    }
 
     public function allForAdmin(): array
     {
@@ -28,14 +33,10 @@ final class SystemSetting
 
     public function payOSConfig(): array
     {
-        $get = function (string $key): string {
-            $stored = $this->get($key);
-            return ($stored !== null && $stored !== '') ? $stored : (string)(getenv($key) ?: '');
-        };
         return [
-            'client_id' => $get('PAYOS_CLIENT_ID'),
-            'api_key' => $get('PAYOS_API_KEY'),
-            'checksum_key' => $get('PAYOS_CHECKSUM_KEY'),
+            'client_id' => $this->configValue('PAYOS_CLIENT_ID'),
+            'api_key' => $this->configValue('PAYOS_API_KEY'),
+            'checksum_key' => $this->configValue('PAYOS_CHECKSUM_KEY'),
             'api_url' => self::PAYOS_API_URL,
             'app_url' => $this->currentHttpHost(),
         ];
@@ -43,32 +44,59 @@ final class SystemSetting
 
     public function googleConfig(): array
     {
-        $get = function (string $key): string {
-            $stored = $this->get($key);
-            return ($stored !== null && $stored !== '') ? $stored : (string)(getenv($key) ?: '');
-        };
+        $redirectUri = $this->configValue('GOOGLE_REDIRECT_URI');
+        if ($redirectUri === '') {
+            $redirectUri = $this->currentHttpHost() . '/auth/google/callback';
+        }
         return [
-            'client_id' => $get('GOOGLE_CLIENT_ID'),
-            'client_secret' => $get('GOOGLE_CLIENT_SECRET'),
-            'redirect_uri' => $get('GOOGLE_REDIRECT_URI') ?: ($this->currentHttpHost() . '/auth/google/callback'),
+            'client_id' => $this->configValue('GOOGLE_CLIENT_ID'),
+            'client_secret' => $this->configValue('GOOGLE_CLIENT_SECRET'),
+            'redirect_uri' => $redirectUri,
         ];
     }
 
     public function mailConfig(): array
     {
-        $get = function (string $key): string {
-            $stored = $this->get($key);
-            return ($stored !== null && $stored !== '') ? $stored : (string)(getenv($key) ?: '');
-        };
+        $smtpPort = $this->configValue('MAIL_SMTP_PORT');
+        if ($smtpPort === '') {
+            $smtpPort = '587';
+        }
+        $encryption = $this->configValue('MAIL_SMTP_ENCRYPTION');
+        if ($encryption === '') {
+            $encryption = 'tls';
+        }
+        $from = $this->configValue('MAIL_FROM');
+        if ($from === '') {
+            $from = 'no-reply@localhost';
+        }
+        $fromName = $this->configValue('MAIL_FROM_NAME');
+        if ($fromName === '') {
+            $fromName = 'Nhà sách Mộc Bản';
+        }
         return [
-            'host' => $get('MAIL_SMTP_HOST'),
-            'port' => (int)($get('MAIL_SMTP_PORT') ?: 587),
-            'username' => $get('MAIL_SMTP_USERNAME'),
-            'password' => $get('MAIL_SMTP_PASSWORD'),
-            'encryption' => strtolower($get('MAIL_SMTP_ENCRYPTION') ?: 'tls'),
-            'from' => $get('MAIL_FROM') ?: 'no-reply@localhost',
-            'from_name' => $get('MAIL_FROM_NAME') ?: 'Nhà sách Mộc Bản',
+            'host' => $this->configValue('MAIL_SMTP_HOST'),
+            'port' => (int)$smtpPort,
+            'username' => $this->configValue('MAIL_SMTP_USERNAME'),
+            'password' => $this->configValue('MAIL_SMTP_PASSWORD'),
+            'encryption' => strtolower($encryption),
+            'from' => $from,
+            'from_name' => $fromName,
         ];
+    }
+
+    private function configValue(string $key): string
+    {
+        $stored = $this->get($key);
+        if ($stored !== null && $stored !== '') {
+            return $stored;
+        }
+
+        $environmentValue = getenv($key);
+        if ($environmentValue === false || $environmentValue === '' || $environmentValue === '0') {
+            return '';
+        }
+
+        return (string)$environmentValue;
     }
 
     private function currentHttpHost(): string
@@ -81,8 +109,15 @@ final class SystemSetting
         $statement = $this->database->connection()->prepare('SELECT setting_value, is_secret FROM system_settings WHERE setting_key = :setting_key LIMIT 1');
         $statement->execute(['setting_key' => $key]);
         $row = $statement->fetch();
-        if (!$row) return null;
-        return (int)$row['is_secret'] === 1 ? $this->decrypt((string)$row['setting_value']) : (string)$row['setting_value'];
+        if (!$row) {
+            return null;
+        }
+
+        if ((int)$row['is_secret'] === 1) {
+            return $this->decrypt((string)$row['setting_value']);
+        }
+
+        return (string)$row['setting_value'];
     }
 
     public function saveMany(array $settings, int $updatedBy): void
@@ -95,13 +130,27 @@ final class SystemSetting
                 $value = (string)($data['value'] ?? '');
                 $secret = (bool)($data['secret'] ?? false);
                 // Ô secret để trống luôn giữ nguyên cấu hình cũ; nếu chưa có thì không tạo bản ghi rỗng.
-                if ($secret && trim($value) === '') continue;
+                if ($secret && trim($value) === '') {
+                    continue;
+                }
                 $stored = $secret ? $this->encrypt($value) : $value;
-                $statement->execute(['setting_key'=>$key,'setting_value'=>$stored,'is_secret'=>$secret?1:0,'updated_by'=>$updatedBy,'updated_value'=>$stored,'updated_secret'=>$secret?1:0,'updated_by_update'=>$updatedBy]);
+                $secretFlag = $secret ? 1 : 0;
+                $parameters = [
+                    'setting_key' => $key,
+                    'setting_value' => $stored,
+                    'is_secret' => $secretFlag,
+                    'updated_by' => $updatedBy,
+                    'updated_value' => $stored,
+                    'updated_secret' => $secretFlag,
+                    'updated_by_update' => $updatedBy,
+                ];
+                $statement->execute($parameters);
             }
             $databaseConnection->commit();
         } catch (\Throwable $exception) {
-            if ($databaseConnection->inTransaction()) $databaseConnection->rollBack();
+            if ($databaseConnection->inTransaction()) {
+                $databaseConnection->rollBack();
+            }
             throw $exception;
         }
     }
@@ -125,12 +174,31 @@ final class SystemSetting
         if (!in_array($smtpEncryption, array('tls', 'ssl', 'none'), true)) {
             $smtpEncryption = 'tls';
         }
-        if ($shopEmail !== '' && !filter_var($shopEmail, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Email cửa hàng không hợp lệ.');
-        if ($mailFrom !== '' && !filter_var($mailFrom, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Email gửi đi không hợp lệ.');
-        if ($googleRedirectUri !== '' && !filter_var($googleRedirectUri, FILTER_VALIDATE_URL)) throw new RuntimeException('Địa chỉ callback Google không hợp lệ.');
-        if ($smtpHost !== '' && mb_strlen($smtpHost) > 190) throw new RuntimeException('Tên máy chủ SMTP quá dài.');
-        if ((int)($input['mail_smtp_port'] ?? 587) < 1 || (int)($input['mail_smtp_port'] ?? 587) > 65535) throw new RuntimeException('Cổng SMTP không hợp lệ.');
-        if ((int)($input['shipping_fee'] ?? 0) < 0) throw new RuntimeException('Phí vận chuyển không hợp lệ.');
+        if ($shopEmail !== '' && !filter_var($shopEmail, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('Email cửa hàng không hợp lệ.');
+        }
+
+        if ($mailFrom !== '' && !filter_var($mailFrom, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('Email gửi đi không hợp lệ.');
+        }
+
+        if ($googleRedirectUri !== '' && !filter_var($googleRedirectUri, FILTER_VALIDATE_URL)) {
+            throw new RuntimeException('Địa chỉ callback Google không hợp lệ.');
+        }
+
+        if ($smtpHost !== '' && mb_strlen($smtpHost) > 190) {
+            throw new RuntimeException('Tên máy chủ SMTP quá dài.');
+        }
+
+        $smtpPort = (int)($input['mail_smtp_port'] ?? 587);
+        if ($smtpPort < 1 || $smtpPort > 65535) {
+            throw new RuntimeException('Cổng SMTP không hợp lệ.');
+        }
+
+        $shippingFee = (int)($input['shipping_fee'] ?? 0);
+        if ($shippingFee < 0) {
+            throw new RuntimeException('Phí vận chuyển không hợp lệ.');
+        }
         return [
             'SHOP_PHONE' => ['value' => $shopPhone, 'secret' => false],
             'SHOP_EMAIL' => ['value' => $shopEmail, 'secret' => false],
@@ -186,7 +254,9 @@ final class SystemSetting
                 @chmod($keyFile, 0600);
             }
         }
-        if ($appKey === '') throw new RuntimeException('Khóa bảo mật không hợp lệ.');
+        if ($appKey === '') {
+            throw new RuntimeException('Khóa bảo mật không hợp lệ.');
+        }
         return hash('sha256', $appKey, true);
     }
 
@@ -197,11 +267,15 @@ final class SystemSetting
             $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
             return 'enc:s:' . base64_encode($nonce . sodium_crypto_secretbox($value, $nonce, $key));
         }
-        if (!function_exists('openssl_encrypt')) throw new RuntimeException('PHP cần bật Sodium hoặc OpenSSL extension.');
+        if (!function_exists('openssl_encrypt')) {
+            throw new RuntimeException('PHP cần bật Sodium hoặc OpenSSL extension.');
+        }
         $iv = random_bytes(12);
         $tag = '';
         $cipher = openssl_encrypt($value, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
-        if ($cipher === false) throw new RuntimeException('Không thể mã hóa cấu hình hệ thống.');
+        if ($cipher === false) {
+            throw new RuntimeException('Không thể mã hóa cấu hình hệ thống.');
+        }
         return 'enc:o:' . base64_encode($iv . $tag . $cipher);
     }
 
@@ -210,13 +284,17 @@ final class SystemSetting
         $key = $this->encryptionKey();
         if (str_starts_with($value, 'enc:s:') && function_exists('sodium_crypto_secretbox_open')) {
             $raw = base64_decode(substr($value, 6), true);
-            if ($raw === false || strlen($raw) <= SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) return '';
+            if ($raw === false || strlen($raw) <= SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
+                return '';
+            }
             $plain = sodium_crypto_secretbox_open(substr($raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES), substr($raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES), $key);
             return $plain === false ? '' : $plain;
         }
         if (str_starts_with($value, 'enc:o:') && function_exists('openssl_decrypt')) {
             $raw = base64_decode(substr($value, 6), true);
-            if ($raw === false || strlen($raw) <= 28) return '';
+            if ($raw === false || strlen($raw) <= 28) {
+                return '';
+            }
             $iv = substr($raw, 0, 12);
             $tag = substr($raw, 12, 16);
             $cipher = substr($raw, 28);

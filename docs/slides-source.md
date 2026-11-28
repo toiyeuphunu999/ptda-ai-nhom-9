@@ -14,7 +14,7 @@ Khách vãng lai, khách hàng có tài khoản và quản trị viên.
 
 ## Slide 4 — Chức năng chính
 
-Trang chủ, danh mục, tìm kiếm, chi tiết sách, đăng ký/đăng nhập, giỏ hàng, checkout COD, lịch sử đơn, CRUD sách/danh mục và quản lý đơn/khách hàng.
+Trang chủ, danh mục, tìm kiếm, chi tiết sách, tài khoản, Google OAuth, giỏ hàng, checkout COD/PayOS, lịch sử đơn, voucher, đánh giá, wishlist, CRUD sách/danh mục và quản lý đơn/khách hàng.
 
 ## Slide 5 — Kiến trúc
 
@@ -30,12 +30,12 @@ Password hash, session, CSRF cho POST, kiểm tra role ở server, escape HTML v
 
 ## Slide 8 — Kiểm thử
 
-53/53 PHP lint PASS; route smoke PASS; admin login PASS; 404 và security path PASS; dữ liệu test được dọn sạch.
+95/95 PHP lint PASS; 5/5 JavaScript syntax PASS; `git diff --check` PASS. Runtime route/database/OAuth/SMTP/PayOS cần kiểm tra trong môi trường có server và credentials.
 
 ## Slide 9 — Trình diễn production
 
-Mở `https://nhom9.khag.tech/`, đăng nhập Admin production, xem dashboard, tạo/sửa sách hoặc danh mục, kiểm tra đơn hàng.
+Khi có môi trường demo hợp lệ, đăng nhập Admin, xem dashboard, tạo/sửa sách hoặc danh mục, kiểm tra đơn hàng và thanh toán. Không ghi credential hoặc URL chưa được xác minh vào source.
 
 ## Slide 10 — Giới hạn và hướng phát triển
 
-Hosting thật và Live URL đã hoàn tất; voucher và đánh giá sách đã tích hợp. Thanh toán online, email và biến thể sách cần triển khai/xác nhận tiếp.
+Voucher, đánh giá, địa chỉ, wishlist và điểm thành viên đã tích hợp. PayOS, SMTP và Google OAuth đã có adapter/flow nhưng cần credential và runtime test; biến thể sách chưa thuộc schema.

@@ -8,8 +8,11 @@ use App\Core\Database;
 
 final class OrderItem
 {
-    public function __construct(private Database $database)
+    private Database $database;
+
+    public function __construct(Database $database)
     {
+        $this->database = $database;
     }
 
     public function forOrder(int $orderId): array

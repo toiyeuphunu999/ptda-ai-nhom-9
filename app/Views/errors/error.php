@@ -1,24 +1,7 @@
 <?php
 use App\Helpers\ViewHelper;
-
-$errorCode = (string)($errorCode ?? '404');
-$errorTitle = (string)($errorTitle ?? 'Không tìm thấy trang');
-$errorMessage = (string)($errorMessage ?? 'Đường dẫn bạn truy cập không tồn tại trên website.');
-$errorLabel = (string)($errorLabel ?? 'Có thể đường dẫn đã thay đổi hoặc không còn tồn tại.');
-$primaryUrl = (string)($primaryUrl ?? '/');
-$primaryLabel = (string)($primaryLabel ?? 'Về trang chủ');
+$errorCode = (string)($errorCode ?? '404'); $errorTitle = (string)($errorTitle ?? 'Không tìm thấy trang'); $errorMessage = (string)($errorMessage ?? 'Đường dẫn bạn truy cập không tồn tại trên website.'); $errorLabel = (string)($errorLabel ?? 'Có thể đường dẫn đã thay đổi hoặc không còn tồn tại.'); $primaryUrl = (string)($primaryUrl ?? '/'); $primaryLabel = (string)($primaryLabel ?? 'Về trang chủ');
 ?>
-<main class="error-page-wrap">
-    <section class="error-page container" aria-labelledby="error-title">
-        <div class="error-mark"><span class="material-symbols-outlined" aria-hidden="true">menu_book</span></div>
-        <p class="error-code"><?= ViewHelper::escape($errorCode) ?></p>
-        <p class="eyebrow">Nhà sách Mộc Bản</p>
-        <h1 id="error-title"><?= ViewHelper::escape($errorTitle) ?></h1>
-        <p class="error-message"><?= ViewHelper::escape($errorMessage) ?></p>
-        <p class="error-label"><?= ViewHelper::escape($errorLabel) ?></p>
-        <div class="error-actions">
-            <a class="button button-primary" href="<?= ViewHelper::escape($primaryUrl) ?>"><span class="material-symbols-outlined" aria-hidden="true">home</span><?= ViewHelper::escape($primaryLabel) ?></a>
-            <a class="button" href="/books"><span class="material-symbols-outlined" aria-hidden="true">menu_book</span>Khám phá sách</a>
-        </div>
-    </section>
+<main class="flex min-h-[calc(100vh-300px)] items-center justify-center bg-slate-50 px-4 py-16">
+    <section class="mx-auto flex w-full max-w-3xl flex-col items-center px-6 py-12 text-center" aria-labelledby="error-title"><div class="mb-5 grid size-[72px] place-items-center rounded-full border border-blue-200 bg-blue-50 text-blue-950"><span class="material-symbols-outlined text-[34px]" aria-hidden="true">menu_book</span></div><p class="mb-1 text-sm font-bold tracking-[.16em] text-orange-800"><?= ViewHelper::escape($errorCode) ?></p><p class="mb-2 text-[11px] font-bold uppercase tracking-[.18em] text-orange-600">Nhà sách Mộc Bản</p><h1 id="error-title" class="max-w-2xl text-4xl font-bold leading-tight text-blue-950 sm:text-5xl"><?= ViewHelper::escape($errorTitle) ?></h1><p class="mt-5 max-w-xl text-[17px] leading-7 text-slate-900"><?= ViewHelper::escape($errorMessage) ?></p><p class="mt-1.5 max-w-lg text-sm leading-6 text-slate-600"><?= ViewHelper::escape($errorLabel) ?></p><div class="mt-7 flex flex-wrap justify-center gap-3"><a class="inline-flex min-w-40 min-h-11 items-center justify-center gap-2 rounded-xl bg-orange-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-100" href="<?= ViewHelper::escape($primaryUrl) ?>"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">home</span><?= ViewHelper::escape($primaryLabel) ?></a><a class="inline-flex min-w-40 min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-blue-950 transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100" href="/books"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">menu_book</span>Khám phá sách</a></div></section>
 </main>

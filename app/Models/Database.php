@@ -10,10 +10,12 @@ use RuntimeException;
 
 final class Database
 {
-    private ?PDO $connection = null;
+    private $connection = null;
+    private array $config;
 
-    public function __construct(private array $config)
+    public function __construct(array $config)
     {
+        $this->config = $config;
     }
 
     public function connection(): PDO

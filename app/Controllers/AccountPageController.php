@@ -18,7 +18,10 @@ final class AccountPageController extends Controller
     {
         Session::start();
         $user = Session::get('user');
-        if (!is_array($user)) { header('Location: /login'); return; }
+        if (!is_array($user)) {
+            header('Location: /login');
+            return;
+        }
         $this->renderAccount($user);
     }
 
@@ -26,7 +29,10 @@ final class AccountPageController extends Controller
     {
         Session::start();
         $user = Session::get('user');
-        if (!is_array($user)) { header('Location: /login'); return; }
+        if (!is_array($user)) {
+            header('Location: /login');
+            return;
+        }
         $name = trim((string)($_POST['name'] ?? ''));
         $phone = trim((string)($_POST['phone'] ?? ''));
         $address = trim((string)($_POST['address'] ?? ''));
@@ -45,9 +51,24 @@ final class AccountPageController extends Controller
     private function renderAccount(array $user, ?string $error = null, ?string $formName = null, ?string $formPhone = null, ?string $formAddress = null): void
     {
         $database = $this->database();
-        $account = (new User($database))->findById((int)$user['id']) ?: $user;
+        $account = (new User($database))->findById((int)$user['id']);
+        if (!$account) {
+            $account = $user;
+        }
+
         $points = new MemberPoint($database);
-        $this->view->render('shop/account', ['title'=>'Tài khoản','user'=>$account,'addresses'=>(new UserAddress($database))->allForUser((int)$user['id']),'pointsBalance'=>$points->balance((int)$user['id']),'pointsHistory'=>$points->history((int)$user['id']),'profileError'=>$error,'formName'=>$formName ?? $account['name'] ?? '', 'formPhone'=>$formPhone ?? $account['phone'] ?? '', 'formAddress'=>$formAddress ?? $account['address'] ?? '']);
+        $formData = array(
+            'title' => 'Tài khoản',
+            'user' => $account,
+            'addresses' => (new UserAddress($database))->allForUser((int)$user['id']),
+            'pointsBalance' => $points->balance((int)$user['id']),
+            'pointsHistory' => $points->history((int)$user['id']),
+            'profileError' => $error,
+            'formName' => $formName !== null ? $formName : ($account['name'] ?? ''),
+            'formPhone' => $formPhone !== null ? $formPhone : ($account['phone'] ?? ''),
+            'formAddress' => $formAddress !== null ? $formAddress : ($account['address'] ?? ''),
+        );
+        $this->view->render('shop/account', $formData);
     }
 
     public function addressStore(): void
@@ -77,7 +98,10 @@ final class AccountPageController extends Controller
     {
         Session::start();
         $user = Session::get('user');
-        if (!is_array($user)) { header('Location: /login'); return; }
+        if (!is_array($user)) {
+            header('Location: /login');
+            return;
+        }
         try {
             Csrf::verify($_POST['_csrf'] ?? null);
             $addressModel = new UserAddress($this->database());

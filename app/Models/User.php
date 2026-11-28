@@ -8,8 +8,11 @@ use App\Core\Database;
 
 final class User
 {
-    public function __construct(private Database $database)
+    private Database $database;
+
+    public function __construct(Database $database)
     {
+        $this->database = $database;
     }
 
     public function findByEmail(string $email): ?array
@@ -179,8 +182,13 @@ final class User
         if ($name === '' || mb_strlen($name) > 120) {
             throw new \RuntimeException('Họ tên không được để trống và tối đa 120 ký tự.');
         }
-        if ($phone !== '' && !preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) throw new \RuntimeException('Số điện thoại không hợp lệ.');
-        if (mb_strlen($address) > 255) throw new \RuntimeException('Địa chỉ tối đa 255 ký tự.');
+        if ($phone !== '' && !preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) {
+            throw new \RuntimeException('Số điện thoại không hợp lệ.');
+        }
+
+        if (mb_strlen($address) > 255) {
+            throw new \RuntimeException('Địa chỉ tối đa 255 ký tự.');
+        }
         $statement = $this->database->connection()->prepare('UPDATE users SET name = :name, phone = :phone, address = :address WHERE id = :id');
         $statement->execute(['name' => $name, 'phone' => $phone !== '' ? $phone : null, 'address' => $address !== '' ? $address : null, 'id' => $id]);
     }
@@ -219,18 +227,34 @@ final class User
 
     public function updateByAdmin(int $id, string $name, string $email, string $phone = '', string $address = ''): void
     {
-        $name = trim($name); $email = trim($email); $phone = trim($phone); $address = trim($address);
-        if ($name === '' || mb_strlen($name) > 120) throw new \RuntimeException('Họ tên không được để trống và tối đa 120 ký tự.');
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190) throw new \RuntimeException('Email không hợp lệ.');
-        if ($phone !== '' && !preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) throw new \RuntimeException('Số điện thoại không hợp lệ.');
-        if (mb_strlen($address) > 255) throw new \RuntimeException('Địa chỉ tối đa 255 ký tự.');
+        $name = trim($name);
+        $email = trim($email);
+        $phone = trim($phone);
+        $address = trim($address);
+        if ($name === '' || mb_strlen($name) > 120) {
+            throw new \RuntimeException('Họ tên không được để trống và tối đa 120 ký tự.');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190) {
+            throw new \RuntimeException('Email không hợp lệ.');
+        }
+
+        if ($phone !== '' && !preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) {
+            throw new \RuntimeException('Số điện thoại không hợp lệ.');
+        }
+
+        if (mb_strlen($address) > 255) {
+            throw new \RuntimeException('Địa chỉ tối đa 255 ký tự.');
+        }
         $statement = $this->database->connection()->prepare(
             'UPDATE users SET name = :name, email = :email, phone = :phone, address = :address WHERE id = :id'
         );
         try {
             $statement->execute(['name'=>$name, 'email'=>$email, 'phone'=>$phone !== '' ? $phone : null, 'address'=>$address !== '' ? $address : null, 'id'=>$id]);
         } catch (\PDOException $exception) {
-            if ((int)$exception->errorInfo[1] === 1062) throw new \RuntimeException('Email này đã được sử dụng bởi tài khoản khác.');
+            if ((int)$exception->errorInfo[1] === 1062) {
+                throw new \RuntimeException('Email này đã được sử dụng bởi tài khoản khác.');
+            }
             throw $exception;
         }
     }
@@ -238,8 +262,13 @@ final class User
     public function setPurchaseBlocked(int $id, bool $blocked): void
     {
         $account = $this->findById($id);
-        if (!$account) throw new \RuntimeException('Không tìm thấy tài khoản.');
-        if (($account['role'] ?? '') !== 'customer') throw new \RuntimeException('Chỉ có thể khóa quyền mua của tài khoản khách hàng.');
+        if (!$account) {
+            throw new \RuntimeException('Không tìm thấy tài khoản.');
+        }
+
+        if (($account['role'] ?? '') !== 'customer') {
+            throw new \RuntimeException('Chỉ có thể khóa quyền mua của tài khoản khách hàng.');
+        }
         $statement = $this->database->connection()->prepare('UPDATE users SET purchase_blocked = :blocked WHERE id = :id');
         $statement->execute(['blocked' => $blocked ? 1 : 0, 'id' => $id]);
     }
@@ -257,18 +286,26 @@ final class User
 
     public function adjustWallet(int $id, int $amount, string $description, ?int $adminId = null): void
     {
-        if ($amount === 0) throw new \RuntimeException('Số tiền điều chỉnh phải khác 0.');
+        if ($amount === 0) {
+            throw new \RuntimeException('Số tiền điều chỉnh phải khác 0.');
+        }
         $description = trim($description);
-        if ($description === '' || mb_strlen($description) > 255) throw new \RuntimeException('Vui lòng nhập lý do, tối đa 255 ký tự.');
+        if ($description === '' || mb_strlen($description) > 255) {
+            throw new \RuntimeException('Vui lòng nhập lý do, tối đa 255 ký tự.');
+        }
         $databaseConnection = $this->database->connection();
         $databaseConnection->beginTransaction();
         try {
             $statement = $databaseConnection->prepare('SELECT wallet_balance FROM users WHERE id = :id FOR UPDATE');
             $statement->execute(['id' => $id]);
             $balance = $statement->fetchColumn();
-            if ($balance === false) throw new \RuntimeException('Không tìm thấy tài khoản.');
+            if ($balance === false) {
+                throw new \RuntimeException('Không tìm thấy tài khoản.');
+            }
             $newBalance = (int)$balance + $amount;
-            if ($newBalance < 0) throw new \RuntimeException('Không thể trừ vượt quá số dư ví hiện tại.');
+            if ($newBalance < 0) {
+                throw new \RuntimeException('Không thể trừ vượt quá số dư ví hiện tại.');
+            }
             $databaseConnection->prepare('UPDATE users SET wallet_balance = :balance WHERE id = :id')->execute(['balance'=>$newBalance, 'id'=>$id]);
             $databaseConnection->prepare(
                 "INSERT INTO wallet_transactions (user_id, amount, balance_after, transaction_type, description, created_by)

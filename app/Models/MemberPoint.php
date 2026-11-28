@@ -13,8 +13,11 @@ final class MemberPoint
     public const REFERRER_POINTS = 200;
     public const REFERRED_POINTS = 100;
 
-    public function __construct(private Database $database)
+    private Database $database;
+
+    public function __construct(Database $database)
     {
+        $this->database = $database;
     }
 
     public function balance(int $userId): int
@@ -56,7 +59,9 @@ final class MemberPoint
         $statement = $this->database->connection()->prepare('SELECT referred_by FROM users WHERE id = :id LIMIT 1');
         $statement->execute(['id' => $newUserId]);
         $referrerId = $statement->fetchColumn();
-        if (!$referrerId) return;
+        if (!$referrerId) {
+            return;
+        }
 
         $this->addOnce((int)$referrerId, self::REFERRER_POINTS, 'referral', $newUserId, 'Thưởng giới thiệu thành viên mới.');
         $this->addOnce($newUserId, self::REFERRED_POINTS, 'referral', $newUserId, 'Thưởng đăng ký qua mã giới thiệu.');

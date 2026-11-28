@@ -13,9 +13,19 @@ abstract class AdminController extends Controller
     {
         Session::start();
         $user = Session::get('user');
-        if (!is_array($user) || ($user['role'] ?? '') !== 'admin') {
+
+        $isAdmin = is_array($user) && isset($user['role']) && $user['role'] === 'admin';
+        if (!$isAdmin) {
             http_response_code(403);
-            $this->view->render('errors/error', ['title'=>'Không có quyền truy cập','errorCode'=>'403','errorTitle'=>'Bạn không có quyền truy cập','errorMessage'=>'Tài khoản hiện tại không được phép mở khu vực quản trị.','errorLabel'=>'Hãy đăng nhập bằng tài khoản quản trị hoặc quay lại cửa hàng.','primaryUrl'=>'/','primaryLabel'=>'Về cửa hàng']);
+            $this->view->render('errors/error', array(
+                'title' => 'Không có quyền truy cập',
+                'errorCode' => '403',
+                'errorTitle' => 'Bạn không có quyền truy cập',
+                'errorMessage' => 'Tài khoản hiện tại không được phép mở khu vực quản trị.',
+                'errorLabel' => 'Hãy đăng nhập bằng tài khoản quản trị hoặc quay lại cửa hàng.',
+                'primaryUrl' => '/',
+                'primaryLabel' => 'Về cửa hàng',
+            ));
             exit;
         }
     }

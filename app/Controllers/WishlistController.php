@@ -17,11 +17,16 @@ final class WishlistController extends Controller
     {
         Session::start();
         $user = Session::get('user');
-        if (!is_array($user)) { header('Location: /login'); return; }
-        $this->view->render('shop/wishlist', [
+        if (!is_array($user)) {
+            header('Location: /login');
+            return;
+        }
+
+        $data = array(
             'title' => 'Sách yêu thích',
             'books' => (new Wishlist($this->database()))->forUser((int)$user['id']),
-        ]);
+        );
+        $this->view->render('shop/wishlist', $data);
     }
 
     public function add(string $id): void
@@ -40,14 +45,28 @@ final class WishlistController extends Controller
     {
         Session::start();
         $user = Session::get('user');
-        if (!is_array($user)) { header('Location: /login'); return; }
-        $redirect = $action === 'remove' ? '/wishlist' : '/books';
+        if (!is_array($user)) {
+            header('Location: /login');
+            return;
+        }
+
+        $redirect = '/books';
+        if ($action === 'remove') {
+            $redirect = '/wishlist';
+        }
+
         try {
             Csrf::verify($_POST['_csrf'] ?? null);
             $bookModel = new Book($this->database());
             $book = $bookModel->findById($bookId);
-            if (!$book || $book['status'] !== 'published') throw new \RuntimeException('Sách không tồn tại hoặc chưa được bán.');
-            if ($action === 'add') $redirect = '/books/' . rawurlencode((string)$book['slug']);
+            if (!$book || $book['status'] !== 'published') {
+                throw new \RuntimeException('Sách không tồn tại hoặc chưa được bán.');
+            }
+
+            if ($action === 'add') {
+                $redirect = '/books/' . rawurlencode((string)$book['slug']);
+            }
+
             $wishlistModel = new Wishlist($this->database());
             $userId = (int)$user['id'];
             if ($action === 'add') {
@@ -57,7 +76,9 @@ final class WishlistController extends Controller
                 $wishlistModel->remove($userId, $bookId);
                 Session::flash('success', 'Đã xóa sách khỏi danh sách yêu thích.');
             }
-        } catch (Throwable $exception) { Session::flash('failure', $exception->getMessage()); }
+        } catch (Throwable $exception) {
+            Session::flash('failure', $exception->getMessage());
+        }
         header('Location: ' . $redirect);
     }
 }

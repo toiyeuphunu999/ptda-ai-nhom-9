@@ -63,10 +63,21 @@ class Checkout
             $paymentMethod = 'bank_transfer';
         }
 
-        if ($name === '' || mb_strlen($name) > 120) throw new RuntimeException('Họ tên người nhận không hợp lệ, tối đa 120 ký tự.');
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190) throw new RuntimeException('Email nhận thông báo không hợp lệ.');
-        if (!preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) throw new RuntimeException('Số điện thoại không hợp lệ.');
-        if ($address === '' || mb_strlen($address) > 255) throw new RuntimeException('Địa chỉ nhận hàng không hợp lệ, tối đa 255 ký tự.');
+        if ($name === '' || mb_strlen($name) > 120) {
+            throw new RuntimeException('Họ tên người nhận không hợp lệ, tối đa 120 ký tự.');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190) {
+            throw new RuntimeException('Email nhận thông báo không hợp lệ.');
+        }
+
+        if (!preg_match('/^[0-9+().\s-]{8,30}$/', $phone)) {
+            throw new RuntimeException('Số điện thoại không hợp lệ.');
+        }
+
+        if ($address === '' || mb_strlen($address) > 255) {
+            throw new RuntimeException('Địa chỉ nhận hàng không hợp lệ, tối đa 255 ký tự.');
+        }
         if ($paymentMethod !== 'cod' && $paymentMethod !== 'bank_transfer') {
             throw new RuntimeException('Phương thức thanh toán không hợp lệ.');
         }
@@ -90,7 +101,9 @@ class Checkout
         }
 
         $voucherCode = trim((string)($input['voucher_code'] ?? ''));
-        if (mb_strlen($voucherCode) > 50) throw new RuntimeException('Mã giảm giá không hợp lệ.');
+        if (mb_strlen($voucherCode) > 50) {
+            throw new RuntimeException('Mã giảm giá không hợp lệ.');
+        }
         $voucherId = $this->getVoucherId($voucherCode, $cartItems);
         $orderModel = new Order($this->database);
         $orderCode = $orderModel->createFromCart(
@@ -148,6 +161,29 @@ class Checkout
         }
     }
 
+    public function validateVoucherCode(string $voucherCode, array $cartItems): array
+    {
+        $voucherCode = trim($voucherCode);
+        if ($voucherCode === '' || mb_strlen($voucherCode) > 50) {
+            throw new RuntimeException('Vui lòng nhập mã giảm giá hợp lệ.');
+        }
+
+        $subtotal = 0;
+        foreach ($cartItems as $item) {
+            $subtotal += (int)$item['book']['price'] * (int)$item['quantity'];
+        }
+
+        $voucher = (new Voucher($this->database))->findByCode($voucherCode);
+        if (!$voucher || !Voucher::isUsable($voucher, $subtotal)) {
+            throw new RuntimeException('Mã giảm giá không hợp lệ hoặc đã hết hạn.');
+        }
+
+        return array(
+            'code' => (string)$voucher['code'],
+            'discount' => Voucher::discountFor($voucher, $subtotal),
+        );
+    }
+
     public function webhook(array $payload): void
     {
         $settings = new SystemSetting($this->database);
@@ -182,15 +218,8 @@ class Checkout
             return null;
         }
 
-        $subtotal = 0;
-        foreach ($cartItems as $item) {
-            $subtotal += (int)$item['book']['price'] * (int)$item['quantity'];
-        }
-
+        $this->validateVoucherCode($voucherCode, $cartItems);
         $voucher = (new Voucher($this->database))->findByCode($voucherCode);
-        if (!$voucher || !Voucher::isUsable($voucher, $subtotal)) {
-            throw new RuntimeException('Mã giảm giá không hợp lệ hoặc đã hết hạn.');
-        }
         return (int)$voucher['id'];
     }
 }

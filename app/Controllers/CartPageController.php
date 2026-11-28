@@ -69,6 +69,20 @@ class CartPageController extends Controller
 
         try {
             Csrf::verify($_POST['_csrf'] ?? null);
+
+            if (($_POST['checkout_action'] ?? '') === 'apply_voucher') {
+                $voucher = $this->getCheckoutModel()->validateVoucherCode(
+                    (string)($_POST['voucher_code'] ?? ''),
+                    $this->getCartModel()->items()
+                );
+                $this->showCheckoutError(
+                    $user,
+                    '',
+                    'Đã áp dụng mã ' . $voucher['code'] . ' — giảm ' . number_format((int)$voucher['discount'], 0, ',', '.') . ' đ.'
+                );
+                return;
+            }
+
             $result = $this->getCheckoutModel()->place((int)$user['id'], $_POST);
 
             if (!empty($result['paymentUrl'])) {
@@ -161,22 +175,50 @@ class CartPageController extends Controller
     {
         Session::start();
         $user = Session::get('user');
-        if (!is_array($user)) { header('Location: /login'); return; }
+        if (!is_array($user)) {
+            header('Location: /login');
+            return;
+        }
+
         $order = (new Order($this->database()))->detailForUser((int)$id, (int)$user['id']);
-        if (!$order) { http_response_code(404); $this->view->render('errors/error', ['title'=>'Không tìm thấy đơn hàng','errorCode'=>'404','errorTitle'=>'Không tìm thấy đơn hàng','errorMessage'=>'Đơn hàng không tồn tại.','errorLabel'=>'Quay lại lịch sử đơn hàng.','primaryUrl'=>'/orders','primaryLabel'=>'Lịch sử đơn hàng']); return; }
-        $this->view->render('shop/order_detail', ['title' => 'Chi tiết đơn hàng', 'order' => $order]);
+        if (!$order) {
+            http_response_code(404);
+            $this->view->render('errors/error', array(
+                'title' => 'Không tìm thấy đơn hàng',
+                'errorCode' => '404',
+                'errorTitle' => 'Không tìm thấy đơn hàng',
+                'errorMessage' => 'Đơn hàng không tồn tại.',
+                'errorLabel' => 'Quay lại lịch sử đơn hàng.',
+                'primaryUrl' => '/orders',
+                'primaryLabel' => 'Lịch sử đơn hàng',
+            ));
+            return;
+        }
+
+        $data = array(
+            'title' => 'Chi tiết đơn hàng',
+            'order' => $order,
+        );
+        $this->view->render('shop/order_detail', $data);
     }
 
     public function cancelOrder(string $id): void
     {
         Session::start();
         $user = Session::get('user');
-        if (!is_array($user)) { header('Location: /login'); return; }
+        if (!is_array($user)) {
+            header('Location: /login');
+            return;
+        }
+
         try {
             Csrf::verify($_POST['_csrf'] ?? null);
             (new Order($this->database()))->cancelByCustomer((int)$id, (int)$user['id'], (string)($_POST['reason'] ?? ''));
             Session::flash('success', 'Đã gửi xử lý hủy đơn hàng.');
-        } catch (Throwable $exception) { Session::flash('failure', $exception->getMessage()); }
+        } catch (Throwable $exception) {
+            Session::flash('failure', $exception->getMessage());
+        }
+
         header('Location: /orders/' . (int)$id);
     }
 
@@ -184,12 +226,19 @@ class CartPageController extends Controller
     {
         Session::start();
         $user = Session::get('user');
-        if (!is_array($user)) { header('Location: /login'); return; }
+        if (!is_array($user)) {
+            header('Location: /login');
+            return;
+        }
+
         try {
             Csrf::verify($_POST['_csrf'] ?? null);
             (new Order($this->database()))->confirmReceived((int)$id, (int)$user['id']);
             Session::flash('success', 'Đã xác nhận nhận được hàng. Đơn hàng đã hoàn tất.');
-        } catch (Throwable $exception) { Session::flash('failure', $exception->getMessage()); }
+        } catch (Throwable $exception) {
+            Session::flash('failure', $exception->getMessage());
+        }
+
         header('Location: /orders/' . (int)$id);
     }
 
@@ -197,7 +246,10 @@ class CartPageController extends Controller
     {
         Session::start();
         $user = Session::get('user');
-        if (!is_array($user)) { header('Location: /login'); return; }
+        if (!is_array($user)) {
+            header('Location: /login');
+            return;
+        }
         $image = null;
         try {
             Csrf::verify($_POST['_csrf'] ?? null);
@@ -216,16 +268,33 @@ class CartPageController extends Controller
 
     private function saveReturnImage(array $file): ?string
     {
-        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) return null;
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+
         $temporaryPath = (string)($file['tmp_name'] ?? '');
-        if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK || !is_uploaded_file($temporaryPath) || (int)($file['size'] ?? 0) < 1 || (int)($file['size'] ?? 0) > 5 * 1024 * 1024) throw new \RuntimeException('Ảnh đổi trả không hợp lệ hoặc vượt quá 5MB.');
+        $fileError = (int)($file['error'] ?? UPLOAD_ERR_OK);
+        $fileSize = (int)($file['size'] ?? 0);
+        if ($fileError !== UPLOAD_ERR_OK || !is_uploaded_file($temporaryPath) || $fileSize < 1 || $fileSize > 5 * 1024 * 1024) {
+            throw new \RuntimeException('Ảnh đổi trả không hợp lệ hoặc vượt quá 5MB.');
+        }
+
         $mime = (string)(mime_content_type($temporaryPath) ?: '');
         $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-        if (!isset($extensions[$mime])) throw new \RuntimeException('Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP.');
+        if (!isset($extensions[$mime])) {
+            throw new \RuntimeException('Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP.');
+        }
+
         $directory = dirname(__DIR__, 2) . '/storage/returns';
-        if (!is_dir($directory) && !mkdir($directory, 0750, true)) throw new \RuntimeException('Không thể tạo thư mục lưu ảnh đổi trả.');
+        if (!is_dir($directory) && !mkdir($directory, 0750, true)) {
+            throw new \RuntimeException('Không thể tạo thư mục lưu ảnh đổi trả.');
+        }
+
         $name = bin2hex(random_bytes(16)) . '.' . $extensions[$mime];
-        if (!move_uploaded_file((string)$file['tmp_name'], $directory . '/' . $name)) throw new \RuntimeException('Không thể lưu ảnh đổi trả.');
+        if (!move_uploaded_file((string)$file['tmp_name'], $directory . '/' . $name)) {
+            throw new \RuntimeException('Không thể lưu ảnh đổi trả.');
+        }
+
         return $name;
     }
 
@@ -271,12 +340,13 @@ class CartPageController extends Controller
         header('Location: /cart');
     }
 
-    private function showCheckoutError(array $user, string $error): void
+    private function showCheckoutError(array $user, string $error, string $success = ''): void
     {
         $addressId = (int)($_POST['saved_address_id'] ?? 0);
         $data = $this->getCheckoutModel()->formData((int)$user['id'], $addressId);
         $data['title'] = 'Thanh toán';
         $data['error'] = $error;
+        $data['success'] = $success;
         $data['items'] = $this->getCartModel()->items();
         $data['paymentMethod'] = $_POST['payment_method'] ?? 'cod';
         $data['voucherCode'] = (string)($_POST['voucher_code'] ?? '');

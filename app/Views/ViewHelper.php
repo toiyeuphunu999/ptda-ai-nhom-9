@@ -48,7 +48,7 @@ final class ViewHelper
 
     public static function orderStatus(string $status): string
     {
-        return [
+        $labels = array(
             'pending' => 'Chờ xử lý',
             'confirmed' => 'Đã xác nhận',
             'shipping' => 'Đang giao',
@@ -60,45 +60,75 @@ final class ViewHelper
             'returned' => 'Đã nhận hàng trả',
             'return_rejected' => 'Từ chối đổi trả',
             'cancelled' => 'Đã hủy',
-        ][$status] ?? $status;
+        );
+
+        if (isset($labels[$status])) {
+            return $labels[$status];
+        }
+
+        return $status;
     }
 
     public static function paymentMethod(string $method): string
     {
-        return [
+        $labels = array(
             'cod' => 'Thanh toán khi nhận hàng (COD)',
             'bank_transfer' => 'Chuyển khoản ngân hàng',
             'momo' => 'Ví MoMo',
             'vnpay' => 'VNPay',
             'zalopay' => 'ZaloPay',
-        ][$method] ?? $method;
+        );
+
+        if (isset($labels[$method])) {
+            return $labels[$method];
+        }
+
+        return $method;
     }
 
     public static function paymentStatus(string $status): string
     {
-        return [
+        $labels = array(
             'pending' => 'Chờ thanh toán',
             'paid' => 'Đã thanh toán',
             'failed' => 'Thanh toán thất bại',
             'cancelled' => 'Đã hủy thanh toán',
             'refunded' => 'Đã hoàn tiền',
-        ][$status] ?? $status;
+        );
+
+        if (isset($labels[$status])) {
+            return $labels[$status];
+        }
+
+        return $status;
     }
 
     public static function bookStatus(string $status): string
     {
-        return [
+        $labels = array(
             'draft' => 'Bản nháp',
             'published' => 'Đang bán',
             'hidden' => 'Đã ẩn',
-        ][$status] ?? $status;
+        );
+
+        if (isset($labels[$status])) {
+            return $labels[$status];
+        }
+
+        return $status;
     }
 
     public static function userRole(string $role): string
     {
-        return [
+        $labels = array(
             'customer' => 'Khách hàng',
             'admin' => 'Quản trị viên',
-        ][$role] ?? $role;
+        );
+
+        if (isset($labels[$role])) {
+            return $labels[$role];
+        }
+
+        return $role;
     }
 }
